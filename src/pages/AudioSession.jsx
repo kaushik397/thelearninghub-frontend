@@ -196,12 +196,12 @@ const AudioSession = () => {
 
       <div style={{ marginTop: 'var(--space-xl)', marginBottom: 'var(--space-xl)' }}>
         <button
-          onClick={() => navigate('/assessment')}
+          onClick={() => navigate('/dashboard')}
           className="btn-primary w-full"
           style={{ paddingTop: '18px', paddingBottom: '18px', fontSize: '16px' }}
         >
-          Continue Session
-          <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>arrow_forward</span>
+          Finish Session
+          <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>check</span>
         </button>
       </div>
     </AppLayout>

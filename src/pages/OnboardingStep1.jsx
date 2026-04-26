@@ -163,6 +163,57 @@ const OnboardingStep1 = () => {
 
           <div className="flex flex-col" style={{ gap: 'var(--space-xs)' }}>
             <label
+              htmlFor="password"
+              style={{
+                fontFamily: "'DM Sans', sans-serif",
+                fontSize: '11px',
+                fontWeight: 500,
+                letterSpacing: '0.10em',
+                textTransform: 'uppercase',
+                color: 'var(--text-mid)',
+              }}
+            >
+              Password
+            </label>
+            <div className="relative">
+              <span
+                className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2"
+                style={{ color: 'var(--text-soft)', fontSize: '20px' }}
+              >
+                lock
+              </span>
+              <input
+                style={inputStyle}
+                id="password"
+                placeholder="At least 8 characters"
+                required
+                type="password"
+                minLength={8}
+                autoComplete="new-password"
+                onFocus={(e) => {
+                  e.target.style.border = '1.5px solid var(--primary)';
+                  e.target.style.boxShadow = '0 0 0 4px var(--primary-pale)';
+                }}
+                onBlur={(e) => {
+                  e.target.style.border = '1px solid var(--border-light)';
+                  e.target.style.boxShadow = 'none';
+                }}
+              />
+            </div>
+            <span
+              style={{
+                fontFamily: "'DM Sans', sans-serif",
+                fontSize: '12px',
+                color: 'var(--text-soft)',
+                marginTop: '4px',
+              }}
+            >
+              We'll use this to create your FocusPath account.
+            </span>
+          </div>
+
+          <div className="flex flex-col" style={{ gap: 'var(--space-xs)' }}>
+            <label
               htmlFor="dob"
               style={{
                 fontFamily: "'DM Sans', sans-serif",

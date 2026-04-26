@@ -1,53 +1,13 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import AppLayout from '../layouts/AppLayout';
 import ProgressBar from '../components/ProgressBar';
 
 const ConceptView = () => {
   const navigate = useNavigate();
   return (
-    <div className="min-h-screen" style={{ background: 'var(--bg)', color: 'var(--text)' }}>
-      <header
-        className="fixed w-full z-50"
-        style={{
-          background: 'rgba(253, 248, 216, 0.85)',
-          WebkitBackdropFilter: 'blur(24px)',
-          backdropFilter: 'blur(24px)',
-          borderBottom: '1px solid var(--border-light)',
-        }}
-      >
-        <div className="flex justify-between items-center h-16 px-6 w-full max-w-[1180px] mx-auto">
-          <span
-            style={{
-              fontFamily: "'Playfair Display', serif",
-              fontWeight: 700,
-              fontSize: '22px',
-              letterSpacing: '-0.02em',
-              color: 'var(--text)',
-            }}
-          >
-            Focus<span style={{ color: 'var(--primary)' }}>Path</span>
-          </span>
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => navigate('/dashboard')}
-              className="material-symbols-outlined transition-transform active:scale-95"
-              style={{ color: 'var(--primary)', cursor: 'pointer', background: 'transparent', border: 'none' }}
-            >
-              close
-            </button>
-          </div>
-        </div>
-      </header>
-
-      <main
-        className="w-full max-w-[800px] mx-auto min-h-screen flex flex-col items-center"
-        style={{
-          paddingTop: 'var(--space-2xl)',
-          paddingBottom: 'var(--space-3xl)',
-          paddingLeft: 'var(--space-md)',
-          paddingRight: 'var(--space-md)',
-        }}
-      >
+    <AppLayout title="FocusPath">
+      <div className="w-full max-w-[800px] mx-auto flex flex-col items-center">
         <div className="w-full">
           <ProgressBar progress={8.33} label="Probability Theory: Introduction" />
         </div>
@@ -180,7 +140,7 @@ const ConceptView = () => {
           </div>
         </div>
 
-        <div className="w-full mt-auto">
+        <div className="w-full">
           <button
             onClick={() => navigate('/audio')}
             className="btn-primary w-full"
@@ -190,8 +150,8 @@ const ConceptView = () => {
             <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>arrow_forward</span>
           </button>
         </div>
-      </main>
-    </div>
+      </div>
+    </AppLayout>
   );
 };
 

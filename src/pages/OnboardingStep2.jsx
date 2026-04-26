@@ -4,6 +4,37 @@ import { useNavigate } from 'react-router-dom';
 const OnboardingStep2 = () => {
   const navigate = useNavigate();
   const [methodology, setMethodology] = useState('mix');
+  const [mix, setMix] = useState({ Text: 40, Video: 40, Audio: 20 });
+
+  // Adjusts the dragged slider and proportionally redistributes the
+  // remaining percentage across the other two so the total always = 100.
+  const handleMixChange = (key, raw) => {
+    const newValue = Math.max(0, Math.min(100, parseInt(raw, 10) || 0));
+    const otherKeys = Object.keys(mix).filter((k) => k !== key);
+    const remaining = 100 - newValue;
+    const otherSum = otherKeys.reduce((s, k) => s + mix[k], 0);
+
+    const next = { [key]: newValue };
+
+    if (otherSum === 0) {
+      const base = Math.floor(remaining / otherKeys.length);
+      const rem = remaining - base * otherKeys.length;
+      otherKeys.forEach((k, i) => {
+        next[k] = base + (i < rem ? 1 : 0);
+      });
+    } else {
+      let runningSum = newValue;
+      otherKeys.forEach((k, i) => {
+        if (i === otherKeys.length - 1) {
+          next[k] = 100 - runningSum;
+        } else {
+          next[k] = Math.round((mix[k] / otherSum) * remaining);
+          runningSum += next[k];
+        }
+      });
+    }
+    setMix(next);
+  };
 
   const optionLabel = (label) => ({
     fontFamily: "'Playfair Display', serif",
@@ -171,7 +202,7 @@ const OnboardingStep2 = () => {
                     gap: 'var(--space-md)',
                   }}
                 >
-                  {['Text', 'Video', 'Audio'].map((label, idx) => (
+                  {['Text', 'Video', 'Audio'].map((label) => (
                     <div key={label} className="flex flex-col gap-2">
                       <div className="flex justify-between items-center">
                         <span
@@ -190,9 +221,14 @@ const OnboardingStep2 = () => {
                         </span>
                         <span
                           className="chip chip-active"
-                          style={{ padding: '4px 12px', fontSize: '12px' }}
+                          style={{
+                            padding: '4px 12px',
+                            fontSize: '12px',
+                            minWidth: '54px',
+                            justifyContent: 'center',
+                          }}
                         >
-                          {idx === 2 ? '20%' : '40%'}
+                          {mix[label]}%
                         </span>
                       </div>
                       <input
@@ -204,7 +240,9 @@ const OnboardingStep2 = () => {
                         max="100"
                         min="0"
                         type="range"
-                        defaultValue={idx === 2 ? 20 : 40}
+                        value={mix[label]}
+                        onChange={(e) => handleMixChange(label, e.target.value)}
+                        aria-label={`${label} learning mix percentage`}
                       />
                     </div>
                   ))}
@@ -218,7 +256,7 @@ const OnboardingStep2 = () => {
                         color: 'var(--primary)',
                       }}
                     >
-                      100% Complete
+                      {mix.Text + mix.Video + mix.Audio}% Complete
                     </span>
                   </div>
                 </div>

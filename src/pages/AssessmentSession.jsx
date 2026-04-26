@@ -208,6 +208,33 @@ const AssessmentSession = () => {
               </div>
             </div>
           </div>
+
+          <div
+            className="flex flex-col items-center"
+            style={{ marginTop: 'var(--space-xl)', gap: 'var(--space-sm)' }}
+          >
+            <button
+              type="button"
+              onClick={() => navigate('/module')}
+              className="btn-primary"
+              style={{ paddingTop: '16px', paddingBottom: '16px', paddingLeft: '40px', paddingRight: '40px' }}
+            >
+              Begin Learning
+              <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>arrow_forward</span>
+            </button>
+            <p
+              className="text-center"
+              style={{
+                fontFamily: "'DM Sans', sans-serif",
+                fontSize: '12px',
+                color: 'var(--text-soft)',
+                margin: 0,
+                maxWidth: '420px',
+              }}
+            >
+              We've mapped your starting point. Your first module is ready.
+            </p>
+          </div>
         </div>
       </main>
 

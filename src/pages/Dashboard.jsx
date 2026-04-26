@@ -1,7 +1,9 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import AppLayout from '../layouts/AppLayout';
 
 const Dashboard = () => {
+  const navigate = useNavigate();
   const tracks = [
     { title: "Electronics and Communication", icon: "memory", progress: 42, time: "2 hours ago" },
     { title: "RTOS", icon: "developer_board", progress: 88, time: "5 hours ago" },
@@ -55,7 +57,7 @@ const Dashboard = () => {
               </span>
             </div>
             <div className="flex flex-wrap gap-4">
-              <button className="btn-primary">
+              <button className="btn-primary" onClick={() => navigate('/start-session')}>
                 Continue Learning
                 <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>play_arrow</span>
               </button>
@@ -177,6 +179,10 @@ const Dashboard = () => {
             </div>
           ))}
           <div
+            role="button"
+            tabIndex={0}
+            onClick={() => navigate('/start-session')}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate('/start-session'); } }}
             className="group flex flex-col items-center justify-center text-center transition-all cursor-pointer"
             style={{
               background: 'transparent',
