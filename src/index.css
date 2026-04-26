@@ -1,0 +1,517 @@
+@import "tailwindcss";
+
+/* ========================================================================
+   FocusPath — Design Tokens
+   ======================================================================== */
+:root {
+  --primary:        #FF600A;
+  --primary-dim:    rgba(255, 96, 10, 0.12);
+  --primary-pale:   rgba(255, 96, 10, 0.08);
+  --primary-glow:   rgba(255, 96, 10, 0.30);
+  --bg:             #FDF8D8;
+  --bg-warm:        #F7F0B8;
+  --dark:           #0C1A1D;
+  --dark-2:         #121F23;
+  --dark-3:         #172529;
+  --white:          #FFFFFF;
+  --cream:          #FDF8D8;
+  --text:           #0C1A1D;
+  --text-mid:       #2E4A52;
+  --text-soft:      #5A7A84;
+  --border-light:   rgba(12, 26, 29, 0.08);
+  --border-dark:    rgba(255, 255, 255, 0.07);
+  --border-active:  rgba(255, 96, 10, 0.35);
+  --ease:           cubic-bezier(0.16, 1, 0.3, 1);
+  --radius-sm:      10px;
+  --radius-md:      16px;
+  --radius-lg:      22px;
+  --radius-pill:    100px;
+  --space-xs:       8px;
+  --space-sm:       16px;
+  --space-md:       24px;
+  --space-lg:       40px;
+  --space-xl:       64px;
+  --space-2xl:      96px;
+  --space-3xl:      140px;
+}
+
+/* ========================================================================
+   FocusPath — Tailwind Theme (v4)
+   These map the existing Material-3 utility names onto the FocusPath
+   palette so any `bg-primary-container`, `text-on-surface`, etc. in JSX
+   automatically resolves to a brand-aligned colour.
+   ======================================================================== */
+@theme {
+  /* Brand-named tokens */
+  --color-primary:                 #FF600A;
+  --color-primary-container:       #FF600A;
+  --color-on-primary:              #FFFFFF;
+  --color-on-primary-container:    #FFFFFF;
+  --color-primary-fixed:           rgba(255, 96, 10, 0.12);
+  --color-on-primary-fixed:        #FF600A;
+  --color-primary-dim:             rgba(255, 96, 10, 0.12);
+  --color-primary-pale:            rgba(255, 96, 10, 0.08);
+  --color-primary-glow:            rgba(255, 96, 10, 0.30);
+
+  --color-secondary:               #5A7A84;
+  --color-secondary-container:     rgba(255, 96, 10, 0.08);
+  --color-tertiary:                #5A7A84;
+  --color-tertiary-container:      #FF600A;
+
+  --color-surface:                 #FFFFFF;
+  --color-surface-bright:          #FFFFFF;
+  --color-surface-dim:             #F7F0B8;
+  --color-surface-container:       #F7F0B8;
+  --color-surface-container-low:   rgba(255, 96, 10, 0.06);
+  --color-surface-container-lowest:#FFFFFF;
+  --color-surface-container-high:  rgba(12, 26, 29, 0.06);
+  --color-surface-container-highest: rgba(12, 26, 29, 0.08);
+  --color-surface-variant:         rgba(12, 26, 29, 0.06);
+  --color-on-surface:              #0C1A1D;
+  --color-on-surface-variant:      #2E4A52;
+
+  --color-background:              #FDF8D8;
+  --color-on-background:           #0C1A1D;
+
+  --color-outline:                 #5A7A84;
+  --color-outline-variant:         rgba(12, 26, 29, 0.10);
+
+  --color-inverse-surface:         #0C1A1D;
+  --color-inverse-on-surface:      #FDF8D8;
+  --color-inverse-primary:         #FF600A;
+
+  --color-error:                   #BA1A1A;
+  --color-on-error:                #FFFFFF;
+  --color-error-container:         rgba(186, 26, 26, 0.10);
+  --color-on-error-container:      #BA1A1A;
+
+  /* FocusPath brand aliases */
+  --color-brand-bg:                #FDF8D8;
+  --color-brand-warm:              #F7F0B8;
+  --color-brand-dark:              #0C1A1D;
+  --color-brand-dark-2:            #121F23;
+  --color-brand-dark-3:            #172529;
+  --color-brand-text:              #0C1A1D;
+  --color-brand-text-mid:          #2E4A52;
+  --color-brand-text-soft:         #5A7A84;
+
+  --color-orange-brand:            #FF600A;
+  --color-text-primary:            #0C1A1D;
+  --color-cream:                   #FDF8D8;
+  --color-warm:                    #F7F0B8;
+
+  /* Override stock orange utilities to FocusPath orange */
+  --color-orange-50:               rgba(255, 96, 10, 0.06);
+  --color-orange-100:              rgba(255, 96, 10, 0.12);
+  --color-orange-200:              rgba(255, 96, 10, 0.20);
+  --color-orange-300:              rgba(255, 96, 10, 0.35);
+  --color-orange-400:              #FF8847;
+  --color-orange-500:              #FF600A;
+  --color-orange-600:              #FF600A;
+  --color-orange-700:              #C24500;
+  --color-orange-800:              #8E3300;
+  --color-orange-900:              rgba(255, 96, 10, 0.12);
+  --color-orange-950:              rgba(255, 96, 10, 0.20);
+
+  /* Map slate / stone onto brand neutrals so any leftover utility
+     resolves into the FocusPath palette. */
+  --color-slate-50:                #FDF8D8;
+  --color-slate-100:               rgba(12, 26, 29, 0.06);
+  --color-slate-200:               rgba(12, 26, 29, 0.10);
+  --color-slate-300:               #5A7A84;
+  --color-slate-400:               #5A7A84;
+  --color-slate-500:               #2E4A52;
+  --color-slate-600:               #2E4A52;
+  --color-slate-700:               #172529;
+  --color-slate-800:               #121F23;
+  --color-slate-900:               #0C1A1D;
+  --color-slate-950:               #0C1A1D;
+
+  --color-stone-50:                #FDF8D8;
+  --color-stone-100:               rgba(12, 26, 29, 0.06);
+  --color-stone-200:               rgba(12, 26, 29, 0.10);
+  --color-stone-300:               #5A7A84;
+  --color-stone-400:               #5A7A84;
+  --color-stone-500:               #2E4A52;
+  --color-stone-600:               #2E4A52;
+  --color-stone-700:               #172529;
+  --color-stone-800:               #121F23;
+  --color-stone-900:               #0C1A1D;
+  --color-stone-950:               #0C1A1D;
+
+  /* Fonts — Playfair Display for headings, DM Sans for body */
+  --font-display:  'Playfair Display', serif;
+  --font-headline: 'Playfair Display', serif;
+  --font-h1:       'Playfair Display', serif;
+  --font-h2:       'Playfair Display', serif;
+  --font-h3:       'Playfair Display', serif;
+  --font-body:     'DM Sans', sans-serif;
+  --font-label:    'DM Sans', sans-serif;
+  --font-caption:  'DM Sans', sans-serif;
+  --font-sans:     'DM Sans', sans-serif;
+  --font-serif:    'Playfair Display', serif;
+
+  /* Spacing aliases used by JSX (pt-padding-md, mb-gutter etc.) */
+  --spacing-gutter:     24px;
+  --spacing-padding-sm: 16px;
+  --spacing-padding-md: 24px;
+  --spacing-padding-lg: 48px;
+  --spacing-padding-xl: 80px;
+  --spacing-unit:       8px;
+
+  /* Radius */
+  --radius-sm:    10px;
+  --radius-md:    16px;
+  --radius-lg:    22px;
+  --radius-pill:  100px;
+}
+
+/* ========================================================================
+   Typography utilities (Playfair Display heads / DM Sans body)
+   ======================================================================== */
+@utility font-h1 {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(40px, 6vw, 64px);
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  font-weight: 900;
+}
+
+@utility font-h2 {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(28px, 4vw, 44px);
+  line-height: 1.08;
+  letter-spacing: -0.025em;
+  font-weight: 900;
+}
+
+@utility font-h3 {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(20px, 2.5vw, 28px);
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  font-weight: 700;
+}
+
+@utility font-body {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 16px;
+  line-height: 1.72;
+  font-weight: 300;
+}
+
+@utility font-caption {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  line-height: 1.4;
+  letter-spacing: 0.05em;
+  font-weight: 400;
+}
+
+@utility font-label {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  line-height: 1.2;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
+/* ========================================================================
+   Base styles
+   ======================================================================== */
+@layer base {
+  html {
+    background: var(--bg);
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1, .screen-title {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(40px, 6vw, 64px);
+    font-weight: 900;
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+    color: var(--text);
+  }
+
+  h2, .section-title {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(28px, 4vw, 44px);
+    font-weight: 900;
+    line-height: 1.08;
+    letter-spacing: -0.025em;
+    color: var(--text);
+  }
+
+  h3, .card-title {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(20px, 2.5vw, 28px);
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+    color: var(--text);
+  }
+
+  p, .body-text {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 16px;
+    font-weight: 300;
+    line-height: 1.72;
+    color: var(--text-mid);
+  }
+
+  h1 em, h2 em, h3 em {
+    color: var(--primary);
+    font-style: italic;
+  }
+
+  ::selection {
+    background: var(--primary-dim);
+    color: var(--text);
+  }
+}
+
+/* ========================================================================
+   Component utility classes
+   ======================================================================== */
+
+/* Labels & captions */
+.label,
+.tag,
+.section-label {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.10em;
+  color: var(--primary);
+}
+
+.caption,
+.meta {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-soft);
+}
+
+/* Body copy width guard */
+.measure {
+  max-width: 560px;
+}
+
+/* Primary button */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--primary);
+  color: #ffffff;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  padding: 14px 32px;
+  border-radius: var(--radius-pill);
+  border: none;
+  cursor: pointer;
+  transition: transform 0.25s var(--ease), box-shadow 0.25s var(--ease);
+}
+.btn-primary:hover {
+  transform: scale(1.04);
+  box-shadow: 0 0 0 8px var(--primary-glow);
+}
+.btn-primary:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px var(--primary-pale), 0 0 0 6px var(--primary);
+}
+
+/* Secondary (outline) button */
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: transparent;
+  color: var(--primary);
+  border: 1.5px solid var(--primary);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  padding: 13px 30px;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: background 0.2s var(--ease), color 0.2s var(--ease);
+}
+.btn-secondary:hover {
+  background: var(--primary);
+  color: #ffffff;
+}
+
+/* Ghost button */
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: transparent;
+  border: none;
+  color: var(--text-mid);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  padding: 13px 24px;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.2s var(--ease), color 0.2s var(--ease);
+}
+.btn-ghost:hover {
+  opacity: 1;
+  color: var(--primary);
+}
+
+/* Card on light background */
+.card {
+  background: var(--white);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md) 28px;
+  box-shadow: 0 4px 24px rgba(12, 26, 29, 0.06);
+  transition:
+    transform 0.3s var(--ease),
+    box-shadow 0.3s var(--ease),
+    border-color 0.3s var(--ease);
+}
+.card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 16px 40px rgba(12, 26, 29, 0.10);
+  border-color: var(--border-active);
+}
+
+/* Card on dark background */
+.card-dark {
+  background: var(--dark-2);
+  border: 1px solid var(--border-dark);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md) 28px;
+  box-shadow: none;
+  transition:
+    transform 0.3s var(--ease),
+    border-color 0.3s var(--ease);
+}
+.card-dark:hover {
+  transform: translateY(-5px);
+  border-color: var(--border-active);
+}
+
+/* Progress bar */
+.progress-track {
+  height: 6px;
+  width: 100%;
+  background: var(--primary-dim);
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  background: var(--primary);
+  border-radius: var(--radius-pill);
+  transition: width 1.2s var(--ease);
+}
+
+/* Form fields — applied as base styles */
+@layer base {
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="search"],
+  input[type="url"],
+  input[type="tel"],
+  input[type="date"],
+  input[type="number"],
+  textarea,
+  select {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    color: var(--text);
+    transition: border-color 0.2s var(--ease), box-shadow 0.2s var(--ease);
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--text-soft);
+    opacity: 0.7;
+  }
+
+  input:focus,
+  textarea:focus,
+  select:focus {
+    outline: none;
+  }
+
+  input[type="range"] {
+    accent-color: var(--primary);
+  }
+}
+
+.input {
+  background: var(--white);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 13px 18px;
+  width: 100%;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px;
+  color: var(--text);
+  transition: border-color 0.2s var(--ease), box-shadow 0.2s var(--ease);
+  outline: none;
+}
+.input:focus {
+  border: 1.5px solid var(--primary);
+  box-shadow: 0 0 0 4px var(--primary-pale);
+}
+
+/* Chips & badges */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--primary-pale);
+  color: var(--text-mid);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-pill);
+  padding: 5px 14px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+}
+.chip-active {
+  background: var(--primary);
+  color: #ffffff;
+  border: none;
+}
+
+/* Material symbols base */
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+.material-symbols-outlined.fill {
+  font-variation-settings: 'FILL' 1;
+}
+
+/* Range slider thumb consistency */
+input[type="range"]::-webkit-slider-thumb {
+  background: var(--primary);
+}
+input[type="range"]::-moz-range-thumb {
+  background: var(--primary);
+}
