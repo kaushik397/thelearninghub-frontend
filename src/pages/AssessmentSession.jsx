@@ -1,10 +1,68 @@
-import React from 'react';
-import ProgressBar from '../components/ProgressBar';
+import React, { useMemo, useState } from 'react';
 import ChatBubble from '../components/ChatBubble';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { sendChatMessage } from '../api/learningHub';
 
 const AssessmentSession = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const initialSession = location.state?.chatSession;
+  const [messages, setMessages] = useState(initialSession?.messages || []);
+  const [draft, setDraft] = useState('');
+  const [error, setError] = useState('');
+  const [isSending, setIsSending] = useState(false);
+
+  const sessionTitle = useMemo(() => {
+    return location.state?.topic?.trim() || initialSession?.source_stats?.filename || 'Learning Session';
+  }, [initialSession, location.state]);
+
+  const handleSend = async () => {
+    const message = draft.trim();
+    if (!message || !initialSession?.session_id || isSending) return;
+
+    const optimisticUserMessage = {
+      id: `local_${Date.now()}`,
+      role: 'user',
+      content_markdown: message,
+      created_at: new Date().toISOString(),
+    };
+
+    setMessages((current) => [...current, optimisticUserMessage]);
+    setDraft('');
+    setError('');
+    setIsSending(true);
+
+    try {
+      const response = await sendChatMessage({
+        sessionId: initialSession.session_id,
+        message,
+      });
+      setMessages((current) => [...current, response.message]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not send the message.');
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  if (!initialSession) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg)', color: 'var(--text)', padding: 'var(--space-md)' }}>
+        <div className="card" style={{ maxWidth: '520px', padding: 'var(--space-lg)' }}>
+          <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: '32px', margin: 0, marginBottom: 'var(--space-sm)' }}>
+            No active session
+          </h1>
+          <p style={{ fontFamily: "'DM Sans', sans-serif", color: 'var(--text-mid)', lineHeight: 1.7 }}>
+            Upload a PDF first so FocusPath can generate notes and open the chat.
+          </p>
+          <button type="button" onClick={() => navigate('/start-session')} className="btn-primary">
+            Start Session
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg)', color: 'var(--text)' }}>
       <header
@@ -57,184 +115,41 @@ const AssessmentSession = () => {
           paddingRight: 'var(--space-md)',
         }}
       >
-        <div style={{ marginBottom: 'var(--space-xl)' }}>
-          <ProgressBar progress={83} label="Session Progress" />
-          <div className="mt-2 w-full flex justify-end">
-            <span
-              style={{
-                fontFamily: "'DM Sans', sans-serif",
-                fontSize: '12px',
-                fontWeight: 500,
-                color: 'var(--text-mid)',
-              }}
-            >
-              5 of 6 units
-            </span>
-          </div>
-        </div>
+        <header style={{ marginBottom: 'var(--space-lg)' }}>
+          <span className="section-label" style={{ display: 'block', marginBottom: 'var(--space-xs)' }}>Document Chat</span>
+          <h2
+            style={{
+              fontFamily: "'Playfair Display', serif",
+              fontSize: 'clamp(32px, 4.5vw, 48px)',
+              fontWeight: 900,
+              lineHeight: 1.05,
+              color: 'var(--text)',
+              margin: 0,
+              marginBottom: 'var(--space-sm)',
+            }}
+          >
+            {sessionTitle}
+          </h2>
+          <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '14px', color: 'var(--text-mid)', margin: 0 }}>
+            Ask follow-up questions about the uploaded PDF.
+          </p>
+        </header>
 
         <div className="flex flex-col" style={{ gap: 'var(--space-lg)', paddingBottom: 'var(--space-lg)' }}>
-          <ChatBubble
-            message="That's a great observation about the ecosystem. Let's explore that further. If we were to remove a primary predator from this chain, how do you think it would ripple down to the plant life?"
-          />
-          <ChatBubble
-            isUser={true}
-            message="I think the herbivore population would explode because nothing is hunting them. Then they would eat all the plants, which would eventually lead to their own starvation too."
-          />
-          <div className="flex flex-col items-start gap-2 max-w-[85%]">
-            <div className="flex items-center gap-2 px-1">
-              <div
-                className="w-6 h-6 rounded-full flex items-center justify-center"
-                style={{ background: 'var(--primary-dim)' }}
-              >
-                <span
-                  className="material-symbols-outlined"
-                  style={{ fontSize: '14px', color: 'var(--primary)' }}
-                >
-                  psychology
-                </span>
-              </div>
-              <span
-                style={{
-                  fontFamily: "'DM Sans', sans-serif",
-                  fontSize: '11px',
-                  fontWeight: 500,
-                  letterSpacing: '0.10em',
-                  textTransform: 'uppercase',
-                  color: 'var(--text-soft)',
-                }}
-              >
-                Tutor
-              </span>
-            </div>
-            <div className="flex flex-col w-full" style={{ gap: 'var(--space-sm)' }}>
-              <div
-                style={{
-                  background: 'var(--white)',
-                  padding: '20px 24px',
-                  borderRadius: 'var(--radius-lg)',
-                  borderTopLeftRadius: '6px',
-                  border: '1px solid var(--border-light)',
-                  color: 'var(--text)',
-                  fontFamily: "'DM Sans', sans-serif",
-                  fontSize: '15px',
-                  fontWeight: 300,
-                  lineHeight: 1.7,
-                  boxShadow: '0 4px 16px rgba(12, 26, 29, 0.04)',
-                }}
-              >
-                Spot on! You've identified the "trophic cascade" effect. Now, let's test your understanding. Which of these is most likely to happen to the water quality in a nearby stream if the plant life (riparian buffer) is destroyed by overgrazing?
-              </div>
-              <div className="flex flex-col w-full pl-2" style={{ gap: 'var(--space-xs)' }}>
-                {[
-                  "Sediment levels increase, making the water more turbid.",
-                  "Water temperature decreases due to loss of shade.",
-                  "Dissolved oxygen increases because of less organic decay."
-                ].map((opt, i) => (
-                  <button
-                    key={i}
-                    className="w-full text-left transition-all active:scale-[0.99] group flex gap-3 items-center"
-                    style={{
-                      padding: '16px 20px',
-                      background: 'var(--white)',
-                      border: '1px solid var(--border-light)',
-                      borderRadius: 'var(--radius-md)',
-                      cursor: 'pointer',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.borderColor = 'var(--primary)';
-                      e.currentTarget.style.background = 'var(--primary-pale)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.borderColor = 'var(--border-light)';
-                      e.currentTarget.style.background = 'var(--white)';
-                    }}
-                  >
-                    <div
-                      className="w-6 h-6 flex items-center justify-center shrink-0"
-                      style={{
-                        border: '2px solid var(--border-light)',
-                        borderRadius: '100%',
-                      }}
-                    >
-                      <div
-                        className="w-2.5 h-2.5 opacity-0 group-focus:opacity-100"
-                        style={{ background: 'var(--primary)', borderRadius: '100%' }}
-                      ></div>
-                    </div>
-                    <span
-                      style={{
-                        fontFamily: "'DM Sans', sans-serif",
-                        fontSize: '15px',
-                        fontWeight: 400,
-                        color: 'var(--text)',
-                      }}
-                    >
-                      {opt}
-                    </span>
-                  </button>
-                ))}
-                <button
-                  className="w-full text-left transition-all active:scale-[0.99] flex gap-3 items-center group"
-                  style={{
-                    padding: '16px 20px',
-                    background: 'transparent',
-                    border: '2px dashed var(--border-light)',
-                    borderRadius: 'var(--radius-md)',
-                    cursor: 'pointer',
-                    marginTop: 'var(--space-xs)',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = 'var(--primary)';
-                    e.currentTarget.style.background = 'var(--primary-pale)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = 'var(--border-light)';
-                    e.currentTarget.style.background = 'transparent';
-                  }}
-                >
-                  <span className="material-symbols-outlined" style={{ color: 'var(--text-mid)' }}>help</span>
-                  <span
-                    style={{
-                      fontFamily: "'DM Sans', sans-serif",
-                      fontSize: '15px',
-                      fontWeight: 500,
-                      color: 'var(--text-mid)',
-                    }}
-                  >
-                    I'm not sure, can you explain this part?
-                  </span>
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div
-            className="flex flex-col items-center"
-            style={{ marginTop: 'var(--space-xl)', gap: 'var(--space-sm)' }}
-          >
-            <button
-              type="button"
-              onClick={() => navigate('/module')}
-              className="btn-primary"
-              style={{ paddingTop: '16px', paddingBottom: '16px', paddingLeft: '40px', paddingRight: '40px' }}
-            >
-              Begin Learning
-              <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>arrow_forward</span>
-            </button>
-            <p
-              className="text-center"
-              style={{
-                fontFamily: "'DM Sans', sans-serif",
-                fontSize: '12px',
-                color: 'var(--text-soft)',
-                margin: 0,
-                maxWidth: '420px',
-              }}
-            >
-              We've mapped your starting point. Your first module is ready.
+          {messages.map((message) => (
+            <ChatBubble
+              key={message.id}
+              isUser={message.role === 'user'}
+              role="Tutor"
+              message={message.content_markdown}
+            />
+          ))}
+          {isSending && <ChatBubble message="Thinking..." role="Tutor" />}
+          {error && (
+            <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '13px', color: '#BA1A1A', margin: 0 }}>
+              {error}
             </p>
-          </div>
+          )}
         </div>
       </main>
 
@@ -253,9 +168,17 @@ const AssessmentSession = () => {
         >
           <div className="relative group">
             <textarea
-              placeholder="Reflect on your answer..."
+              placeholder="Ask about this PDF..."
               rows="1"
               className="w-full resize-none"
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSend();
+                }
+              }}
               style={{
                 background: 'var(--white)',
                 border: '1px solid var(--border-light)',
@@ -294,6 +217,8 @@ const AssessmentSession = () => {
               </button>
               <button
                 aria-label="Send message"
+                onClick={handleSend}
+                disabled={isSending || !draft.trim()}
                 className="w-10 h-10 flex items-center justify-center transition-all active:scale-95"
                 style={{
                   background: 'var(--primary)',
