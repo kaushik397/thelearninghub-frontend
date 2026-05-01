@@ -1,8 +1,15 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../auth/auth-context';
+import { isSupabaseConfigured } from '../lib/supabase';
 
 const OnboardingStep1 = () => {
   const navigate = useNavigate();
+  const { signUp } = useAuth();
+  const [form, setForm] = useState({ fullName: '', email: '', password: '', dateOfBirth: '' });
+  const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   const inputStyle = {
     fontFamily: "'DM Sans', sans-serif",
@@ -16,6 +23,60 @@ const OnboardingStep1 = () => {
     width: '100%',
     transition: 'border-color 0.2s var(--ease), box-shadow 0.2s var(--ease)',
     outline: 'none',
+  };
+
+  const handleChange = (field) => (e) => {
+    setForm((current) => ({ ...current, [field]: e.target.value }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setMessage('');
+
+    if (!isSupabaseConfigured) {
+      setError('Supabase is not configured yet. Add your VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+      return;
+    }
+
+    setSubmitting(true);
+    const { data, error: authError } = await signUp({
+      email: form.email.trim(),
+      password: form.password,
+      fullName: form.fullName.trim(),
+      dateOfBirth: form.dateOfBirth,
+    });
+    setSubmitting(false);
+
+    if (authError) {
+      setError(authError.message);
+      return;
+    }
+
+    if (!data.session) {
+      setMessage('Account created. Check your email to confirm it, then sign in.');
+      return;
+    }
+
+    navigate('/onboarding/2');
+  };
+
+  const messageStyle = {
+    fontFamily: "'DM Sans', sans-serif",
+    fontSize: '13px',
+    lineHeight: 1.5,
+    color: 'var(--text-mid)',
+    background: 'var(--primary-pale)',
+    border: '1px solid var(--primary-dim)',
+    borderRadius: 'var(--radius-sm)',
+    padding: '10px 12px',
+  };
+
+  const errorStyle = {
+    ...messageStyle,
+    color: '#BA1A1A',
+    background: 'rgba(186, 26, 26, 0.08)',
+    border: '1px solid rgba(186, 26, 26, 0.16)',
   };
 
   return (
@@ -81,7 +142,7 @@ const OnboardingStep1 = () => {
         <form
           className="flex flex-col"
           style={{ gap: 'var(--space-md)' }}
-          onSubmit={(e) => { e.preventDefault(); navigate('/onboarding/2'); }}
+          onSubmit={handleSubmit}
         >
           <div className="flex flex-col" style={{ gap: 'var(--space-xs)' }}>
             <label
@@ -110,6 +171,9 @@ const OnboardingStep1 = () => {
                 placeholder="e.g. Jane Doe"
                 required
                 type="text"
+                value={form.fullName}
+                autoComplete="name"
+                onChange={handleChange('fullName')}
                 onFocus={(e) => {
                   e.target.style.border = '1.5px solid var(--primary)';
                   e.target.style.boxShadow = '0 0 0 4px var(--primary-pale)';
@@ -149,6 +213,9 @@ const OnboardingStep1 = () => {
                 placeholder="jane@example.com"
                 required
                 type="email"
+                value={form.email}
+                autoComplete="email"
+                onChange={handleChange('email')}
                 onFocus={(e) => {
                   e.target.style.border = '1.5px solid var(--primary)';
                   e.target.style.boxShadow = '0 0 0 4px var(--primary-pale)';
@@ -190,6 +257,8 @@ const OnboardingStep1 = () => {
                 type="password"
                 minLength={8}
                 autoComplete="new-password"
+                value={form.password}
+                onChange={handleChange('password')}
                 onFocus={(e) => {
                   e.target.style.border = '1.5px solid var(--primary)';
                   e.target.style.boxShadow = '0 0 0 4px var(--primary-pale)';
@@ -238,6 +307,8 @@ const OnboardingStep1 = () => {
                 id="dob"
                 required
                 type="date"
+                value={form.dateOfBirth}
+                onChange={handleChange('dateOfBirth')}
                 onFocus={(e) => {
                   e.target.style.border = '1.5px solid var(--primary)';
                   e.target.style.boxShadow = '0 0 0 4px var(--primary-pale)';
@@ -250,18 +321,36 @@ const OnboardingStep1 = () => {
             </div>
           </div>
 
+          {error && <div style={errorStyle}>{error}</div>}
+          {message && <div style={messageStyle}>{message}</div>}
+
           <div className="flex flex-col" style={{ gap: 'var(--space-sm)', marginTop: 'var(--space-xs)' }}>
             <button
               className="btn-primary w-full"
               type="submit"
-              style={{ paddingTop: '16px', paddingBottom: '16px' }}
+              disabled={submitting}
+              style={{ paddingTop: '16px', paddingBottom: '16px', opacity: submitting ? 0.72 : 1 }}
             >
-              Continue
+              {submitting ? 'Creating account...' : 'Continue'}
               <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>arrow_forward</span>
             </button>
             <button className="btn-ghost w-full" type="button">
               Back
             </button>
+            <p
+              className="text-center"
+              style={{
+                fontFamily: "'DM Sans', sans-serif",
+                fontSize: '14px',
+                color: 'var(--text-soft)',
+                margin: 0,
+              }}
+            >
+              Already have an account?{' '}
+              <Link to="/login" style={{ color: 'var(--primary)', fontWeight: 700, textDecoration: 'none' }}>
+                Sign in
+              </Link>
+            </p>
           </div>
         </form>
       </main>
