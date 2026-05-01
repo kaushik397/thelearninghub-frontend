@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import Navbar from '../components/Navbar';
 import { useNavigate } from 'react-router-dom';
-import { createChatSessionFromPdf, createChatSessionFromYoutube } from '../api/learningHub';
+import { createChatSessionFromLink, createChatSessionFromPdf, createChatSessionFromYoutube } from '../api/learningHub';
 
 const MATERIAL_TYPES = [
   { type: 'link',    icon: 'link',           label: 'Add Link' },
@@ -80,6 +80,10 @@ const StartSession = () => {
       setError('Please enter a valid YouTube video URL.');
       return;
     }
+    if (activeForm === 'link' && isYouTubeUrl(value)) {
+      setError('Use the YouTube Link option for YouTube videos.');
+      return;
+    }
     setMaterials((prev) => [
       ...prev,
       { id: nextId(), type: activeForm, value, name: value },
@@ -126,15 +130,11 @@ const StartSession = () => {
     // if (!pdfMaterial) {
     //   setError('Upload a PDF to start a chat session.');
     const youtubeMaterial = materials.find((material) => material.type === 'youtube' && material.value);
-    const unsupportedMaterial = materials.find((material) => material.type === 'link');
-    const sourceMaterial = pdfMaterial || youtubeMaterial;
+    const linkMaterial = materials.find((material) => material.type === 'link' && material.value);
+    const sourceMaterial = pdfMaterial || youtubeMaterial || linkMaterial;
 
-    if (unsupportedMaterial && !sourceMaterial) {
-      setError('Article links are not connected yet. Add a PDF or YouTube video to start a session.');
-      return;
-    }
     if (!sourceMaterial) {
-      setError('Add a PDF or YouTube video to start a chat session.');
+      setError('Add a link, PDF, or YouTube video to start a chat session.');
       return;
     }
 
@@ -147,17 +147,26 @@ const StartSession = () => {
       //   detailLevel: 'standard',
       // });
       const learnerGoal = topic.trim() || 'Help me study this for an exam';
-      const chatSession = pdfMaterial
-        ? await createChatSessionFromPdf({
-            file: pdfMaterial.value,
-            learnerGoal,
-            detailLevel: 'standard',
-          })
-        : await createChatSessionFromYoutube({
-            url: youtubeMaterial.value,
-            learnerGoal,
-            detailLevel: 'standard',
-          });
+      let chatSession;
+      if (pdfMaterial) {
+        chatSession = await createChatSessionFromPdf({
+          file: pdfMaterial.value,
+          learnerGoal,
+          detailLevel: 'standard',
+        });
+      } else if (youtubeMaterial) {
+        chatSession = await createChatSessionFromYoutube({
+          url: youtubeMaterial.value,
+          learnerGoal,
+          detailLevel: 'standard',
+        });
+      } else {
+        chatSession = await createChatSessionFromLink({
+          url: linkMaterial.value,
+          learnerGoal,
+          detailLevel: 'standard',
+        });
+      }
 
       navigate('/assessment', {
         state: {
