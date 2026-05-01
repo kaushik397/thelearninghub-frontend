@@ -1,4 +1,5 @@
 import React from 'react';
+import MarkdownMessage from './MarkdownMessage';
 
 const ChatBubble = ({ message, isUser = false, role = "Tutor" }) => {
   return (
@@ -59,7 +60,7 @@ const ChatBubble = ({ message, isUser = false, role = "Tutor" }) => {
           boxShadow: '0 4px 16px rgba(12, 26, 29, 0.04)',
         }}
       >
-        {message}
+        <MarkdownMessage content={message} />
       </div>
     </div>
   );

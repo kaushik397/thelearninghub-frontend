@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react';
 import Navbar from '../components/Navbar';
 import { useNavigate } from 'react-router-dom';
+import { createChatSessionFromPdf } from '../api/learningHub';
 
 const MATERIAL_TYPES = [
   { type: 'link',    icon: 'link',           label: 'Add Link' },
@@ -36,6 +37,7 @@ const StartSession = () => {
   const [activeForm, setActiveForm] = useState(null); // 'link' | 'youtube' | null
   const [draft, setDraft] = useState('');
   const [error, setError] = useState('');
+  const [isStarting, setIsStarting] = useState(false);
 
   const handleMaterialButton = (type) => {
     setError('');
@@ -101,15 +103,36 @@ const StartSession = () => {
   const removeMaterial = (id) =>
     setMaterials((prev) => prev.filter((m) => m.id !== id));
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    navigate('/assessment', {
-      state: {
-        topic: topic.trim(),
-        duration,
-        materials: materials.map(({ id, type, name }) => ({ id, type, name })),
-      },
-    });
+    const pdfMaterial = materials.find((material) => material.type === 'pdf' && material.value instanceof File);
+    if (!pdfMaterial) {
+      setError('Upload a PDF to start a chat session.');
+      return;
+    }
+
+    setIsStarting(true);
+    setError('');
+    try {
+      const chatSession = await createChatSessionFromPdf({
+        file: pdfMaterial.value,
+        learnerGoal: topic.trim() || 'Help me study this for an exam',
+        detailLevel: 'standard',
+      });
+
+      navigate('/assessment', {
+        state: {
+          topic: topic.trim(),
+          duration,
+          materials: materials.map(({ id, type, name }) => ({ id, type, name })),
+          chatSession,
+        },
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not start the learning session.');
+    } finally {
+      setIsStarting(false);
+    }
   };
 
   return (
@@ -633,10 +656,11 @@ const StartSession = () => {
                 <button
                   type="submit"
                   className="btn-primary w-full"
+                  disabled={isStarting}
                   style={{ paddingTop: '18px', paddingBottom: '18px', fontSize: '16px' }}
                 >
                   <span className="material-symbols-outlined fill" style={{ fontSize: '20px' }}>bolt</span>
-                  Start Learning Session
+                  {isStarting ? 'Generating Notes...' : 'Start Learning Session'}
                 </button>
                 <p
                   className="text-center"
