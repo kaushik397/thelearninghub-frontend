@@ -27,6 +27,26 @@ export async function createChatSessionFromPdf({ file, learnerGoal, detailLevel 
   return response.json();
 }
 
+export async function createChatSessionFromYoutube({ url, learnerGoal, detailLevel = 'standard' }) {
+  const response = await fetch(`${API_BASE_URL}/api/v1/chat/sessions/from-youtube`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      url,
+      learner_goal: learnerGoal || 'Help me study this video',
+      detail_level: detailLevel,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseApiError(response));
+  }
+
+  return response.json();
+}
+
 export async function sendChatMessage({ sessionId, message }) {
   const response = await fetch(`${API_BASE_URL}/api/v1/chat/sessions/${sessionId}/messages`, {
     method: 'POST',

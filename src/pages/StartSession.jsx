@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import Navbar from '../components/Navbar';
 import { useNavigate } from 'react-router-dom';
-import { createChatSessionFromPdf } from '../api/learningHub';
+import { createChatSessionFromPdf, createChatSessionFromYoutube } from '../api/learningHub';
 
 const MATERIAL_TYPES = [
   { type: 'link',    icon: 'link',           label: 'Add Link' },
@@ -22,6 +22,19 @@ const isValidUrl = (s) => {
   try {
     const u = new URL(s);
     return u.protocol === 'http:' || u.protocol === 'https:';
+  } catch {
+    return false;
+  }
+};
+
+const isYouTubeUrl = (s) => {
+  try {
+    const { hostname, pathname, searchParams } = new URL(s);
+    const host = hostname.toLowerCase();
+    if (host === 'youtu.be' || host === 'www.youtu.be') return pathname.slice(1).length > 0;
+    if (!['youtube.com', 'www.youtube.com', 'm.youtube.com'].includes(host)) return false;
+    if (pathname === '/watch') return Boolean(searchParams.get('v'));
+    return pathname.startsWith('/shorts/') || pathname.startsWith('/embed/');
   } catch {
     return false;
   }
@@ -61,6 +74,10 @@ const StartSession = () => {
     if (!value || !activeForm) return;
     if (!isValidUrl(value)) {
       setError('Please enter a valid URL starting with http:// or https://');
+      return;
+    }
+    if (activeForm === 'youtube' && !isYouTubeUrl(value)) {
+      setError('Please enter a valid YouTube video URL.');
       return;
     }
     setMaterials((prev) => [
@@ -106,25 +123,52 @@ const StartSession = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const pdfMaterial = materials.find((material) => material.type === 'pdf' && material.value instanceof File);
-    if (!pdfMaterial) {
-      setError('Upload a PDF to start a chat session.');
+    // if (!pdfMaterial) {
+    //   setError('Upload a PDF to start a chat session.');
+    const youtubeMaterial = materials.find((material) => material.type === 'youtube' && material.value);
+    const unsupportedMaterial = materials.find((material) => material.type === 'link');
+    const sourceMaterial = pdfMaterial || youtubeMaterial;
+
+    if (unsupportedMaterial && !sourceMaterial) {
+      setError('Article links are not connected yet. Add a PDF or YouTube video to start a session.');
+      return;
+    }
+    if (!sourceMaterial) {
+      setError('Add a PDF or YouTube video to start a chat session.');
       return;
     }
 
     setIsStarting(true);
     setError('');
     try {
-      const chatSession = await createChatSessionFromPdf({
-        file: pdfMaterial.value,
-        learnerGoal: topic.trim() || 'Help me study this for an exam',
-        detailLevel: 'standard',
-      });
+      // const chatSession = await createChatSessionFromPdf({
+      //   file: pdfMaterial.value,
+      //   learnerGoal: topic.trim() || 'Help me study this for an exam',
+      //   detailLevel: 'standard',
+      // });
+      const learnerGoal = topic.trim() || 'Help me study this for an exam';
+      const chatSession = pdfMaterial
+        ? await createChatSessionFromPdf({
+            file: pdfMaterial.value,
+            learnerGoal,
+            detailLevel: 'standard',
+          })
+        : await createChatSessionFromYoutube({
+            url: youtubeMaterial.value,
+            learnerGoal,
+            detailLevel: 'standard',
+          });
 
       navigate('/assessment', {
         state: {
           topic: topic.trim(),
           duration,
-          materials: materials.map(({ id, type, name }) => ({ id, type, name })),
+          materials: materials.map(({ id, type, name, value }) => ({
+            id,
+            type,
+            name,
+            value: type === 'pdf' ? undefined : value,
+          })),
           chatSession,
         },
       });
