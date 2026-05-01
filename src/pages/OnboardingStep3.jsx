@@ -1,9 +1,31 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { upsertLearnerProfile } from '../api/userData';
+import { useAuth } from '../auth/auth-context';
 
 const OnboardingStep3 = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [focusLength, setFocusLength] = useState(25);
+  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const saveAndContinue = async () => {
+    setError('');
+    setSaving(true);
+
+    try {
+      await upsertLearnerProfile({
+        userId: user?.id,
+        updates: { focus_duration_minutes: Number(focusLength) },
+      });
+      navigate('/onboarding/4');
+    } catch (err) {
+      setError(err.message || 'Could not save your focus length.');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <div
@@ -169,14 +191,29 @@ const OnboardingStep3 = () => {
         }}
       >
         <button
-          onClick={() => navigate('/onboarding/4')}
+          onClick={saveAndContinue}
           className="btn-primary w-full max-w-[420px]"
-          style={{ paddingTop: '18px', paddingBottom: '18px', fontSize: '16px' }}
+          disabled={saving}
+          style={{ paddingTop: '18px', paddingBottom: '18px', fontSize: '16px', opacity: saving ? 0.72 : 1 }}
         >
-          Continue
+          {saving ? 'Saving...' : 'Continue'}
           <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>arrow_forward</span>
         </button>
       </footer>
+      {error && (
+        <p
+          className="text-center"
+          style={{
+            fontFamily: "'DM Sans', sans-serif",
+            fontSize: '13px',
+            color: '#BA1A1A',
+            margin: 0,
+            paddingBottom: 'var(--space-md)',
+          }}
+        >
+          {error}
+        </p>
+      )}
     </div>
   );
 };

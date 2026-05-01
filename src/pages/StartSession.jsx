@@ -2,6 +2,17 @@ import React, { useRef, useState } from 'react';
 import Navbar from '../components/Navbar';
 import { useNavigate } from 'react-router-dom';
 import { createChatSessionFromLink, createChatSessionFromPdf, createChatSessionFromYoutube } from '../api/learningHub';
+import {
+  createLearningSession,
+  createLearningTrack,
+  createSourceMaterial,
+  linkSessionMaterial,
+  markSourceMaterialFailed,
+  markSourceMaterialReady,
+  saveGeneratedNotes,
+} from '../api/userData';
+import { saveLearningSession } from '../api/sessionResume';
+import { useAuth } from '../auth/auth-context';
 
 const MATERIAL_TYPES = [
   { type: 'link',    icon: 'link',           label: 'Add Link' },
@@ -42,6 +53,7 @@ const isYouTubeUrl = (s) => {
 
 const StartSession = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const fileInputRef = useRef(null);
 
   const [topic, setTopic] = useState('');
@@ -140,48 +152,97 @@ const StartSession = () => {
 
     setIsStarting(true);
     setError('');
+    let sourceMaterialRecord = null;
     try {
-      // const chatSession = await createChatSessionFromPdf({
-      //   file: pdfMaterial.value,
-      //   learnerGoal: topic.trim() || 'Help me study this for an exam',
-      //   detailLevel: 'standard',
-      // });
       const learnerGoal = topic.trim() || 'Help me study this for an exam';
+      const title = topic.trim() || sourceMaterial.name || 'Learning Session';
+      const learningTrack = await createLearningTrack({
+        userId: user?.id,
+        title,
+        description: sourceMaterial.name || learnerGoal,
+        icon: MATERIAL_META[sourceMaterial.type]?.icon || 'auto_stories',
+      });
+      sourceMaterialRecord = await createSourceMaterial({
+        userId: user?.id,
+        type: sourceMaterial.type,
+        title,
+        originalFilename: pdfMaterial?.name,
+        url: sourceMaterial.type === 'pdf' ? null : sourceMaterial.value,
+        mimeType: pdfMaterial?.value?.type,
+        fileSizeBytes: pdfMaterial?.value?.size,
+      });
+      const learningSession = await createLearningSession({
+        userId: user?.id,
+        trackId: learningTrack.id,
+        topic: title,
+        learnerGoal,
+        plannedDurationMinutes: duration,
+      });
+      await linkSessionMaterial({ sessionId: learningSession.id, materialId: sourceMaterialRecord.id });
+
       let chatSession;
       if (pdfMaterial) {
         chatSession = await createChatSessionFromPdf({
           file: pdfMaterial.value,
           learnerGoal,
           detailLevel: 'standard',
+          sessionId: learningSession.id,
+          materialId: sourceMaterialRecord.id,
         });
       } else if (youtubeMaterial) {
         chatSession = await createChatSessionFromYoutube({
           url: youtubeMaterial.value,
           learnerGoal,
           detailLevel: 'standard',
+          sessionId: learningSession.id,
+          materialId: sourceMaterialRecord.id,
         });
       } else {
         chatSession = await createChatSessionFromLink({
           url: linkMaterial.value,
           learnerGoal,
           detailLevel: 'standard',
+          sessionId: learningSession.id,
+          materialId: sourceMaterialRecord.id,
         });
       }
 
-      navigate('/assessment', {
-        state: {
-          topic: topic.trim(),
-          duration,
-          materials: materials.map(({ id, type, name, value }) => ({
-            id,
-            type,
-            name,
-            value: type === 'pdf' ? undefined : value,
-          })),
-          chatSession,
-        },
+      const generatedNotes = await saveGeneratedNotes({
+        sessionId: learningSession.id,
+        notesMarkdown: chatSession.messages?.[0]?.content_markdown || '',
       });
+      await markSourceMaterialReady({ materialId: sourceMaterialRecord.id, userId: user?.id });
+
+      const sessionState = {
+        topic: topic.trim(),
+        duration,
+        materials: materials.map(({ id, type, name, value }) => ({
+          id,
+          type,
+          name,
+          value: type === 'pdf' ? undefined : value,
+        })),
+        chatSession,
+        learningTrack,
+        learningSession,
+        sourceMaterial: sourceMaterialRecord,
+        generatedNotes,
+        notesPartIndex: 0,
+      };
+
+      if (learningTrack?.id) {
+        saveLearningSession(user?.id, learningTrack.id, sessionState);
+      }
+
+      navigate('/assessment', { state: sessionState });
     } catch (err) {
+      if (sourceMaterialRecord?.id) {
+        markSourceMaterialFailed({
+          materialId: sourceMaterialRecord.id,
+          userId: user?.id,
+          errorMessage: err instanceof Error ? err.message : 'Could not start the learning session.',
+        }).catch(() => {});
+      }
       setError(err instanceof Error ? err.message : 'Could not start the learning session.');
     } finally {
       setIsStarting(false);

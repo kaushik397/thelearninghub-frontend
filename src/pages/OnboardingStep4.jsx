@@ -1,9 +1,14 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { upsertLearnerProfile, upsertProfile } from '../api/userData';
+import { useAuth } from '../auth/auth-context';
 
 const OnboardingStep4 = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [energy, setEnergy] = useState('medium');
+  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
 
   const options = [
     { value: 'low', label: 'Low', icon: 'battery_0_bar', description: 'I need a gentle start. Short blocks, frequent breaks.' },
@@ -24,6 +29,30 @@ const OnboardingStep4 = () => {
     cursor: 'pointer',
     position: 'relative',
   });
+
+  const completeSetup = async () => {
+    setError('');
+    setSaving(true);
+
+    try {
+      await upsertLearnerProfile({
+        userId: user?.id,
+        updates: { energy_level: energy },
+      });
+      await upsertProfile({
+        userId: user?.id,
+        email: user?.email,
+        fullName: user?.user_metadata?.full_name || user?.user_metadata?.name || null,
+        dateOfBirth: user?.user_metadata?.date_of_birth || null,
+        onboardingCompletedAt: new Date().toISOString(),
+      });
+      navigate('/dashboard');
+    } catch (err) {
+      setError(err.message || 'Could not complete setup.');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <div
@@ -161,14 +190,28 @@ const OnboardingStep4 = () => {
 
         <div className="flex justify-center mt-auto">
           <button
-            onClick={() => navigate('/dashboard')}
+            onClick={completeSetup}
             className="btn-primary"
-            style={{ paddingLeft: '48px', paddingRight: '48px', paddingTop: '18px', paddingBottom: '18px' }}
+            disabled={saving}
+            style={{ paddingLeft: '48px', paddingRight: '48px', paddingTop: '18px', paddingBottom: '18px', opacity: saving ? 0.72 : 1 }}
           >
-            Complete Setup
+            {saving ? 'Saving...' : 'Complete Setup'}
             <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>check</span>
           </button>
         </div>
+        {error && (
+          <p
+            className="text-center"
+            style={{
+              fontFamily: "'DM Sans', sans-serif",
+              fontSize: '13px',
+              color: '#BA1A1A',
+              marginTop: 'var(--space-sm)',
+            }}
+          >
+            {error}
+          </p>
+        )}
       </main>
     </div>
   );

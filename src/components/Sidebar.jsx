@@ -1,9 +1,12 @@
-import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../auth/auth-context';
 
 const Sidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuth();
+  const displayName = user?.user_metadata?.full_name || user?.email || 'Learning Path';
+  const initial = displayName.trim().charAt(0).toUpperCase() || 'L';
 
   const navItem = (icon, label, path) => {
     const isActive = path && location.pathname === path;
@@ -60,11 +63,7 @@ const Sidebar = () => {
             className="w-10 h-10 rounded-full flex items-center justify-center overflow-hidden shrink-0"
             style={{ background: 'var(--primary-dim)' }}
           >
-            <img
-              alt="User avatar"
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuD6fW8Fq5ENUctuj_MkIY37bRFMn7hGPrWLJ66iluoOl7unhfgbXsg-uggTL5x5yjn_DBXV9ir_rLLU0VczEteW8lYC_d2OSLakzFTnW3aAtQFPxLOcd4etIVW2S_PDHMIwbnQfvbm8miHsMwoUmpyod6oBkW9o-XvoH9Dk5S1zJ-ur-uZi9_1nkgQPLF-ZvOyymYUmqWE1Wgwzjn7_0n-t6Sf3yB-Eoura2FnV-YCWEEwuXVGkbNnR2u2h9jRhYBSKPR0BDpwJVj8"
-              className="w-full h-full object-cover"
-            />
+            <span style={{ color: 'var(--primary)', fontWeight: 700 }}>{initial}</span>
           </div>
           <div className="min-w-0">
             <p
@@ -77,7 +76,7 @@ const Sidebar = () => {
                 lineHeight: 1.3,
               }}
             >
-              Learning Path
+              {displayName}
             </p>
             <p
               style={{

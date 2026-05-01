@@ -1,10 +1,15 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { upsertLearnerProfile } from '../api/userData';
+import { useAuth } from '../auth/auth-context';
 
 const OnboardingStep2 = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [methodology, setMethodology] = useState('mix');
   const [mix, setMix] = useState({ Text: 40, Video: 40, Audio: 20 });
+  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
 
   // Adjusts the dragged slider and proportionally redistributes the
   // remaining percentage across the other two so the total always = 100.
@@ -66,6 +71,28 @@ const OnboardingStep2 = () => {
     transition: 'border-color 0.3s var(--ease), box-shadow 0.3s var(--ease), transform 0.3s var(--ease)',
     cursor: 'pointer',
   });
+
+  const saveAndContinue = async () => {
+    setError('');
+    setSaving(true);
+
+    try {
+      await upsertLearnerProfile({
+        userId: user?.id,
+        updates: {
+          preferred_methodology: methodology,
+          text_mix: methodology === 'mix' ? mix.Text : methodology === 'text' ? 100 : 0,
+          video_mix: methodology === 'mix' ? mix.Video : methodology === 'video' ? 100 : 0,
+          audio_mix: methodology === 'mix' ? mix.Audio : methodology === 'audio' ? 100 : 0,
+        },
+      });
+      navigate('/onboarding/3');
+    } catch (err) {
+      setError(err.message || 'Could not save your learning preferences.');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <div
@@ -277,13 +304,28 @@ const OnboardingStep2 = () => {
           Back
         </button>
         <button
-          onClick={() => navigate('/onboarding/3')}
+          onClick={saveAndContinue}
           className="btn-primary"
+          disabled={saving}
+          style={{ opacity: saving ? 0.72 : 1 }}
         >
-          Continue
+          {saving ? 'Saving...' : 'Continue'}
           <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>arrow_forward</span>
         </button>
       </div>
+      {error && (
+        <p
+          className="w-full max-w-[800px]"
+          style={{
+            fontFamily: "'DM Sans', sans-serif",
+            fontSize: '13px',
+            color: '#BA1A1A',
+            marginTop: 'var(--space-sm)',
+          }}
+        >
+          {error}
+        </p>
+      )}
     </div>
   );
 };

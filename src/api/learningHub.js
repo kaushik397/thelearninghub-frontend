@@ -19,11 +19,13 @@ async function parseApiError(response) {
   }
 }
 
-export async function createChatSessionFromPdf({ file, learnerGoal, detailLevel = 'standard' }) {
+export async function createChatSessionFromPdf({ file, learnerGoal, detailLevel = 'standard', sessionId, materialId }) {
   const formData = new FormData();
   formData.append('file', file);
   formData.append('learner_goal', learnerGoal || 'Help me study this document');
   formData.append('detail_level', detailLevel);
+  if (sessionId) formData.append('session_id', sessionId);
+  if (materialId) formData.append('material_id', materialId);
 
   const response = await fetch(`${API_BASE_URL}/api/v1/chat/sessions/from-pdf`, {
     method: 'POST',
@@ -38,7 +40,7 @@ export async function createChatSessionFromPdf({ file, learnerGoal, detailLevel 
   return response.json();
 }
 
-export async function createChatSessionFromYoutube({ url, learnerGoal, detailLevel = 'standard' }) {
+export async function createChatSessionFromYoutube({ url, learnerGoal, detailLevel = 'standard', sessionId, materialId }) {
   const response = await fetch(`${API_BASE_URL}/api/v1/chat/sessions/from-youtube`, {
     method: 'POST',
     headers: {
@@ -49,6 +51,8 @@ export async function createChatSessionFromYoutube({ url, learnerGoal, detailLev
       url,
       learner_goal: learnerGoal || 'Help me study this video',
       detail_level: detailLevel,
+      session_id: sessionId,
+      material_id: materialId,
     }),
   });
 
@@ -59,7 +63,7 @@ export async function createChatSessionFromYoutube({ url, learnerGoal, detailLev
   return response.json();
 }
 
-export async function createChatSessionFromLink({ url, learnerGoal, detailLevel = 'standard' }) {
+export async function createChatSessionFromLink({ url, learnerGoal, detailLevel = 'standard', sessionId, materialId }) {
   const response = await fetch(`${API_BASE_URL}/api/v1/chat/sessions/from-link`, {
     method: 'POST',
     headers: {
@@ -70,6 +74,8 @@ export async function createChatSessionFromLink({ url, learnerGoal, detailLevel 
       url,
       learner_goal: learnerGoal || 'Help me study this article',
       detail_level: detailLevel,
+      session_id: sessionId,
+      material_id: materialId,
     }),
   });
 
@@ -80,14 +86,18 @@ export async function createChatSessionFromLink({ url, learnerGoal, detailLevel 
   return response.json();
 }
 
-export async function sendChatMessage({ sessionId, message }) {
+export async function sendChatMessage({ sessionId, message, materialId, notesMarkdown }) {
   const response = await fetch(`${API_BASE_URL}/api/v1/chat/sessions/${sessionId}/messages`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       ...(await getAuthHeader()),
     },
-    body: JSON.stringify({ message }),
+    body: JSON.stringify({
+      message,
+      material_id: materialId,
+      notes_markdown: notesMarkdown,
+    }),
   });
 
   if (!response.ok) {

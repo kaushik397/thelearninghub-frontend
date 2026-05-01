@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/auth-context';
 import { isSupabaseConfigured } from '../lib/supabase';
+import { upsertProfile } from '../api/userData';
 
 const OnboardingStep1 = () => {
   const navigate = useNavigate();
@@ -50,6 +51,20 @@ const OnboardingStep1 = () => {
 
     if (authError) {
       setError(authError.message);
+      return;
+    }
+
+    try {
+      if (data.user && data.session) {
+        await upsertProfile({
+          userId: data.user.id,
+          email: data.user.email,
+          fullName: form.fullName.trim(),
+          dateOfBirth: form.dateOfBirth,
+        });
+      }
+    } catch (profileError) {
+      setError(profileError.message || 'Account created, but profile setup could not be saved.');
       return;
     }
 

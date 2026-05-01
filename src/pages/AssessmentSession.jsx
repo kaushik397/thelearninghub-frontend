@@ -1,13 +1,51 @@
-import React, { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import ChatBubble from '../components/ChatBubble';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { sendChatMessage } from '../api/learningHub';
+import { logProgressEvent, updateLearningTrackProgress } from '../api/userData';
+import { updateSavedNotesPart } from '../api/sessionResume';
+import { useAuth } from '../auth/auth-context';
+
+function splitNotesIntoParts(markdown) {
+  const normalized = markdown.trim();
+  if (!normalized) return [];
+
+  const sections = normalized
+    .split(/\n(?=#{1,3}\s|\*\*[^*\n]+:\*\*|[A-Z][^\n]{3,80}:\s*$)/g)
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  const sourceParts = sections.length > 1 ? sections : normalized.split(/\n\s*\n/g).map((part) => part.trim()).filter(Boolean);
+  const chunks = [];
+  let current = '';
+  const targetChars = 1400;
+
+  sourceParts.forEach((part) => {
+    const next = current ? `${current}\n\n${part}` : part;
+    if (next.length > targetChars && current) {
+      chunks.push(current);
+      current = part;
+    } else {
+      current = next;
+    }
+  });
+
+  if (current) chunks.push(current);
+  return chunks.length ? chunks : [normalized];
+}
 
 const AssessmentSession = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuth();
   const initialSession = location.state?.chatSession;
+  const learningTrack = location.state?.learningTrack;
+  const sourceMaterial = location.state?.sourceMaterial;
+  const generatedNotes = location.state?.generatedNotes;
+  const reviewMode = Boolean(location.state?.reviewMode);
+  const restoredFromSupabase = Boolean(location.state?.restoredFromSupabase);
   const [messages, setMessages] = useState(initialSession?.messages || []);
+  const [notesPartIndex, setNotesPartIndex] = useState(location.state?.notesPartIndex || 0);
   const [draft, setDraft] = useState('');
   const [error, setError] = useState('');
   const [isSending, setIsSending] = useState(false);
@@ -15,6 +53,81 @@ const AssessmentSession = () => {
   const sessionTitle = useMemo(() => {
     return location.state?.topic?.trim() || initialSession?.source_stats?.filename || 'Learning Session';
   }, [initialSession, location.state]);
+
+  const notesParts = useMemo(() => {
+    const firstMessage = messages[0];
+    if (!firstMessage || firstMessage.role !== 'assistant') return [];
+    return splitNotesIntoParts(firstMessage.content_markdown);
+  }, [messages]);
+
+  const visibleMessages = useMemo(() => {
+    if (!notesParts.length || reviewMode) return messages;
+
+    return [
+      {
+        ...messages[0],
+        content_markdown: notesParts[notesPartIndex] || notesParts[0],
+      },
+      ...messages.slice(1),
+    ];
+  }, [messages, notesPartIndex, notesParts, reviewMode]);
+
+  const hasNextNotesPart = notesPartIndex < notesParts.length - 1;
+  const hasPreviousNotesPart = notesPartIndex > 0;
+  const notesProgressPercent = notesParts.length
+    ? Math.round(((notesPartIndex + 1) / notesParts.length) * 100)
+    : 0;
+
+  useEffect(() => {
+    setNotesPartIndex(location.state?.notesPartIndex || 0);
+  }, [initialSession?.session_id]);
+
+  useEffect(() => {
+    if (!user?.id || !learningTrack?.id || !notesParts.length) return;
+
+    const progressPercent = Math.round(((notesPartIndex + 1) / notesParts.length) * 100);
+    updateSavedNotesPart(user.id, learningTrack.id, notesPartIndex);
+    updateLearningTrackProgress({
+      userId: user.id,
+      trackId: learningTrack.id,
+      progressPercent,
+    }).catch((err) => {
+      console.warn('Could not update learning track progress', err);
+    });
+  }, [learningTrack?.id, notesPartIndex, notesParts.length, user?.id]);
+
+  const handleNextPart = async () => {
+    if (!hasNextNotesPart) return;
+
+    const nextIndex = notesPartIndex + 1;
+    setNotesPartIndex(nextIndex);
+
+    if (!user?.id) return;
+
+    try {
+      const progressPercent = Math.round(((nextIndex + 1) / notesParts.length) * 100);
+      await logProgressEvent({
+        userId: user.id,
+        eventType: 'notes_part_viewed',
+        eventData: {
+          chat_session_id: initialSession.session_id,
+          learning_track_id: learningTrack?.id,
+          source_filename: initialSession.source_stats?.filename,
+          part_index: nextIndex,
+          part_count: notesParts.length,
+          progress_percent: progressPercent,
+        },
+      });
+    } catch (err) {
+      console.warn('Could not save notes progress event', err);
+    }
+  };
+
+  const handlePreviousPart = () => {
+    if (!hasPreviousNotesPart) return;
+    const previousIndex = Math.max(0, notesPartIndex - 1);
+    setNotesPartIndex(previousIndex);
+  };
 
   const handleSend = async () => {
     const message = draft.trim();
@@ -36,6 +149,8 @@ const AssessmentSession = () => {
       const response = await sendChatMessage({
         sessionId: initialSession.session_id,
         message,
+        materialId: sourceMaterial?.id,
+        notesMarkdown: generatedNotes?.notes_markdown || messages[0]?.content_markdown,
       });
       setMessages((current) => [...current, response.message]);
     } catch (err) {
@@ -131,12 +246,66 @@ const AssessmentSession = () => {
             {sessionTitle}
           </h2>
           <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '14px', color: 'var(--text-mid)', margin: 0 }}>
-            Ask follow-up questions about the uploaded PDF.
+            {reviewMode
+              ? 'Review the full notes generated from your material.'
+              : restoredFromSupabase
+              ? 'Resume your saved notes and ask follow-up questions through Pinecone retrieval.'
+              : 'Ask follow-up questions about the uploaded PDF.'}
           </p>
         </header>
 
         <div className="flex flex-col" style={{ gap: 'var(--space-lg)', paddingBottom: 'var(--space-lg)' }}>
-          {messages.map((message) => (
+          {reviewMode && (
+            <div
+              className="flex items-center justify-between gap-4"
+              style={{
+                background: 'rgba(255, 255, 255, 0.62)',
+                border: '1px solid var(--border-light)',
+                borderRadius: 'var(--radius-md)',
+                padding: '12px 14px',
+              }}
+            >
+              <span className="section-label">Full Notes Review</span>
+              <button
+                className="btn-secondary"
+                onClick={() => navigate('/assessment', { state: { ...location.state, reviewMode: false } })}
+                style={{ padding: '8px 14px', fontSize: '13px' }}
+              >
+                Back to Parts
+              </button>
+            </div>
+          )}
+
+          {!reviewMode && notesParts.length > 1 && (
+            <div
+              className="flex items-center gap-4"
+              style={{
+                background: 'rgba(255, 255, 255, 0.62)',
+                border: '1px solid var(--border-light)',
+                borderRadius: 'var(--radius-md)',
+                padding: '12px 14px',
+              }}
+            >
+              <span className="section-label" style={{ whiteSpace: 'nowrap' }}>
+                Part {notesPartIndex + 1} of {notesParts.length}
+              </span>
+              <div className="progress-track flex-grow" style={{ height: '4px' }}>
+                <div className="progress-fill" style={{ width: `${notesProgressPercent}%` }}></div>
+              </div>
+              <span
+                style={{
+                  fontFamily: "'DM Sans', sans-serif",
+                  fontSize: '12px',
+                  color: 'var(--text-mid)',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {notesProgressPercent}%
+              </span>
+            </div>
+          )}
+
+          {visibleMessages.map((message) => (
             <ChatBubble
               key={message.id}
               isUser={message.role === 'user'}
@@ -168,7 +337,7 @@ const AssessmentSession = () => {
         >
           <div className="relative group">
             <textarea
-              placeholder="Ask about this PDF..."
+              placeholder={restoredFromSupabase ? 'Ask about these saved notes...' : 'Ask about this PDF...'}
               rows="1"
               className="w-full resize-none"
               value={draft}
@@ -183,7 +352,7 @@ const AssessmentSession = () => {
                 background: 'var(--white)',
                 border: '1px solid var(--border-light)',
                 borderRadius: 'var(--radius-md)',
-                padding: '16px 96px 16px 24px',
+                padding: !reviewMode && notesParts.length > 1 ? '16px 230px 16px 24px' : '16px 96px 16px 24px',
                 fontFamily: "'DM Sans', sans-serif",
                 fontSize: '15px',
                 color: 'var(--text)',
@@ -215,6 +384,50 @@ const AssessmentSession = () => {
               >
                 <span className="material-symbols-outlined">mic</span>
               </button>
+              {!reviewMode && notesParts.length > 1 && (
+                <>
+                  <button
+                    aria-label="Previous notes part"
+                    onClick={handlePreviousPart}
+                    disabled={!hasPreviousNotesPart}
+                    className="h-10 flex items-center justify-center gap-1 transition-all active:scale-95"
+                    style={{
+                      background: hasPreviousNotesPart ? 'var(--primary-pale)' : 'transparent',
+                      color: hasPreviousNotesPart ? 'var(--primary)' : 'var(--text-soft)',
+                      border: '1px solid var(--border-light)',
+                      borderRadius: 'var(--radius-sm)',
+                      cursor: hasPreviousNotesPart ? 'pointer' : 'default',
+                      fontFamily: "'DM Sans', sans-serif",
+                      fontSize: '13px',
+                      fontWeight: 700,
+                      padding: '0 10px',
+                    }}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>chevron_left</span>
+                    Prev
+                  </button>
+                  <button
+                    aria-label="Next notes part"
+                    onClick={handleNextPart}
+                    disabled={!hasNextNotesPart}
+                    className="h-10 flex items-center justify-center gap-1 transition-all active:scale-95"
+                    style={{
+                      background: hasNextNotesPart ? 'var(--primary-pale)' : 'transparent',
+                      color: hasNextNotesPart ? 'var(--primary)' : 'var(--text-soft)',
+                      border: '1px solid var(--border-light)',
+                      borderRadius: 'var(--radius-sm)',
+                      cursor: hasNextNotesPart ? 'pointer' : 'default',
+                      fontFamily: "'DM Sans', sans-serif",
+                      fontSize: '13px',
+                      fontWeight: 700,
+                      padding: '0 10px',
+                    }}
+                  >
+                    Next
+                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>chevron_right</span>
+                  </button>
+                </>
+              )}
               <button
                 aria-label="Send message"
                 onClick={handleSend}
