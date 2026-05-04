@@ -331,6 +331,7 @@ const Dashboard = () => {
             Learning Library
           </h2>
           <button
+            onClick={() => navigate('/library')}
             className="flex items-center gap-1 transition-colors"
             style={{
               fontFamily: "'DM Sans', sans-serif",
