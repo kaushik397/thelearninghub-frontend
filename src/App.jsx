@@ -12,6 +12,8 @@ import ModuleView from './pages/ModuleView'
 import ConceptView from './pages/ConceptView'
 import AudioSession from './pages/AudioSession'
 import AssessmentSession from './pages/AssessmentSession'
+import Library from './pages/Library'
+import Profile from './pages/Profile'
 
 function App() {
   return (
@@ -28,6 +30,8 @@ function App() {
         
         {/* App */}
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+        <Route path="/library" element={<ProtectedRoute><Library /></ProtectedRoute>} />
+        <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
         <Route path="/start-session" element={<ProtectedRoute><StartSession /></ProtectedRoute>} />
         
         {/* Learning */}

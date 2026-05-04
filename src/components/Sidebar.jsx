@@ -95,9 +95,9 @@ const Sidebar = () => {
 
       <nav className="flex-grow flex flex-col gap-1">
         {navItem('dashboard', 'Dashboard', '/dashboard')}
-        {navItem('library_books', 'Library', null)}
+        {navItem('library_books', 'Library', '/library')}
         {navItem('history_edu', 'Sessions', null)}
-        {navItem('person', 'Profile', null)}
+        {navItem('person', 'Profile', '/profile')}
       </nav>
 
       <div className="px-6 pt-6">
