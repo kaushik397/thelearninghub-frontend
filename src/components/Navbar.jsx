@@ -1,6 +1,15 @@
-import React from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const Navbar = ({ title = "MindFlow", showBack = false }) => {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const tabs = [
+    { label: 'Modules', path: '/dashboard' },
+    { label: 'Library', path: '/library' },
+    { label: 'Resources', path: null },
+  ];
+
   return (
     <header
       className="sticky top-0 z-50 w-full border-b backdrop-blur-xl"
@@ -25,9 +34,40 @@ const Navbar = ({ title = "MindFlow", showBack = false }) => {
           </h1>
         </div>
         <nav className="hidden md:flex items-center gap-8">
-          <a className="font-body transition-colors" style={{ fontSize: '14px', fontWeight: 500, color: 'var(--primary)', borderBottom: '2px solid var(--primary)', paddingBottom: '4px' }} href="#">Modules</a>
-          <a className="font-body transition-colors hover:text-[color:var(--primary)]" style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-mid)' }} href="#">Library</a>
-          <a className="font-body transition-colors hover:text-[color:var(--primary)]" style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-mid)' }} href="#">Resources</a>
+          {tabs.map((tab) => {
+            const isActive = !!tab.path && location.pathname === tab.path;
+            return (
+              <button
+                key={tab.label}
+                type="button"
+                onClick={() => tab.path && navigate(tab.path)}
+                disabled={!tab.path}
+                className="font-body transition-colors disabled:cursor-default"
+                style={{
+                  fontSize: '14px',
+                  fontWeight: 500,
+                  color: isActive ? 'var(--primary)' : 'var(--text-mid)',
+                  borderBottom: isActive ? '2px solid var(--primary)' : '2px solid transparent',
+                  paddingBottom: '4px',
+                  background: 'transparent',
+                  border: 'none',
+                  borderBottomWidth: '2px',
+                  borderBottomStyle: 'solid',
+                  borderBottomColor: isActive ? 'var(--primary)' : 'transparent',
+                  cursor: tab.path ? 'pointer' : 'default',
+                  opacity: tab.path ? 1 : 0.55,
+                }}
+                onMouseEnter={(e) => {
+                  if (!isActive && tab.path) e.currentTarget.style.color = 'var(--primary)';
+                }}
+                onMouseLeave={(e) => {
+                  if (!isActive && tab.path) e.currentTarget.style.color = 'var(--text-mid)';
+                }}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
         </nav>
         <div className="flex items-center gap-4">
           <span className="material-symbols-outlined cursor-pointer transition-transform hover:scale-110" style={{ color: 'var(--primary)' }}>settings</span>
