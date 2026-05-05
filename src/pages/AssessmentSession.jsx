@@ -6,8 +6,9 @@ import { logProgressEvent, updateLearningTrackProgress } from '../api/userData';
 import { updateSavedNotesPart } from '../api/sessionResume';
 import { useAuth } from '../auth/auth-context';
 
-const NOTES_SECTION_BOUNDARY = /\n(?=#{1,6}\s|\d{1,2}\.\s+[^\n]+|\*\*[^*\n]+:\*\*|[A-Z][^\n]{3,80}:\s*(?:\n|$))/g;
-const NOTES_HEADING_ONLY = /^(#{1,6}\s+.+|\d{1,2}\.\s+.+|\*\*[^*\n]+:\*\*|[A-Z][^\n]{3,80}:\s*)$/;
+const NOTES_SECTION_BOUNDARY = /\n(?=#{1,6}\s|[^A-Za-z0-9\n]*\s*\*{0,2}(?:Focus\s+)?Block\s+\d+\s*:|[^A-Za-z0-9\n]*\s*\*{0,2}(?:Short Overview|Key Takeaways|Focus Blocks|Important Definitions|Why This Matters|Quick Self-Check|Memory Hooks|Action Steps)\*{0,2}\s*$)/gim;
+const NOTES_HEADING_ONLY = /^(#{1,6}\s+.+|[^A-Za-z0-9\n]*\s*\*{0,2}(?:Focus\s+)?Block\s+\d+\s*:.*|[^A-Za-z0-9\n]*\s*\*{0,2}(?:Short Overview|Key Takeaways|Focus Blocks|Important Definitions|Why This Matters|Quick Self-Check|Memory Hooks|Action Steps)\*{0,2}\s*)$/i;
+const RECOMMENDED_VIDEOS_BOUNDARY = /\n##\s+Recommended Videos\s*\n/i;
 
 function isHeadingOnly(part) {
   const lines = part.split('\n').map((line) => line.trim()).filter(Boolean);
@@ -28,18 +29,21 @@ function attachStrandedHeadings(parts) {
 function splitNotesIntoParts(markdown) {
   const normalized = markdown.trim();
   if (!normalized) return [];
+  const videoBoundaryMatch = normalized.match(RECOMMENDED_VIDEOS_BOUNDARY);
+  const notesWithoutVideos = videoBoundaryMatch ? normalized.slice(0, videoBoundaryMatch.index).trim() : normalized;
+  const recommendedVideosPart = videoBoundaryMatch ? normalized.slice(videoBoundaryMatch.index).trim() : '';
 
-  const sections = normalized
+  const sections = notesWithoutVideos
     .split(NOTES_SECTION_BOUNDARY)
     .map((part) => part.trim())
     .filter(Boolean);
 
   const sourceParts = attachStrandedHeadings(
-    sections.length > 1 ? sections : normalized.split(/\n\s*\n/g).map((part) => part.trim()).filter(Boolean),
+    sections.length > 1 ? sections : notesWithoutVideos.split(/\n\s*\n/g).map((part) => part.trim()).filter(Boolean),
   );
   const chunks = [];
   let current = '';
-  const targetChars = 1400;
+  const targetChars = 2200;
 
   sourceParts.forEach((part) => {
     const next = current ? `${current}\n\n${part}` : part;
@@ -52,6 +56,7 @@ function splitNotesIntoParts(markdown) {
   });
 
   if (current) chunks.push(current);
+  if (recommendedVideosPart) chunks.push(recommendedVideosPart);
   return chunks.length ? chunks : [normalized];
 }
 
