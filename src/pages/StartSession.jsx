@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import Navbar from '../components/Navbar';
 import { useNavigate } from 'react-router-dom';
 import { createChatSessionFromLink, createChatSessionFromPdf, createChatSessionFromYoutube } from '../api/learningHub';
@@ -9,7 +9,6 @@ import {
   linkSessionMaterial,
   markSourceMaterialFailed,
   markSourceMaterialReady,
-  saveGeneratedNotes,
 } from '../api/userData';
 import { saveLearningSession } from '../api/sessionResume';
 import { useAuth } from '../auth/auth-context';
@@ -207,10 +206,6 @@ const StartSession = () => {
         });
       }
 
-      const generatedNotes = await saveGeneratedNotes({
-        sessionId: learningSession.id,
-        notesMarkdown: chatSession.messages?.[0]?.content_markdown || '',
-      });
       await markSourceMaterialReady({ materialId: sourceMaterialRecord.id, userId: user?.id });
 
       const sessionState = {
@@ -226,7 +221,7 @@ const StartSession = () => {
         learningTrack,
         learningSession,
         sourceMaterial: sourceMaterialRecord,
-        generatedNotes,
+        generatedNotes: null,
         notesPartIndex: 0,
       };
 
@@ -234,7 +229,7 @@ const StartSession = () => {
         saveLearningSession(user?.id, learningTrack.id, sessionState);
       }
 
-      navigate('/assessment', { state: sessionState });
+      navigate('/assessment-quiz', { state: sessionState });
     } catch (err) {
       if (sourceMaterialRecord?.id) {
         markSourceMaterialFailed({

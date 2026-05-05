@@ -12,6 +12,7 @@ import ModuleView from './pages/ModuleView'
 import ConceptView from './pages/ConceptView'
 import AudioSession from './pages/AudioSession'
 import AssessmentSession from './pages/AssessmentSession'
+import AssessmentQuiz from './pages/AssessmentQuiz'
 import Library from './pages/Library'
 import Profile from './pages/Profile'
 
@@ -38,6 +39,7 @@ function App() {
         <Route path="/module" element={<ProtectedRoute><ModuleView /></ProtectedRoute>} />
         <Route path="/concept" element={<ProtectedRoute><ConceptView /></ProtectedRoute>} />
         <Route path="/audio" element={<ProtectedRoute><AudioSession /></ProtectedRoute>} />
+        <Route path="/assessment-quiz" element={<ProtectedRoute><AssessmentQuiz /></ProtectedRoute>} />
         <Route path="/assessment" element={<ProtectedRoute><AssessmentSession /></ProtectedRoute>} />
       </Routes>
     </div>

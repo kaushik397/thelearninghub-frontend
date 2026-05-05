@@ -106,3 +106,70 @@ export async function sendChatMessage({ sessionId, message, materialId, notesMar
 
   return response.json();
 }
+
+export async function generateSourceSections({ sessionId, learnerGoal }) {
+  const params = new URLSearchParams();
+  if (learnerGoal) params.set('learner_goal', learnerGoal);
+
+  const response = await fetch(`${API_BASE_URL}/api/v1/chat/sessions/${sessionId}/sections?${params.toString()}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(await getAuthHeader()),
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseApiError(response));
+  }
+
+  return response.json();
+}
+
+export async function generateDiagnosticQuiz({ sessionId, learnerGoal, sections }) {
+  const response = await fetch(`${API_BASE_URL}/api/v1/chat/sessions/${sessionId}/quiz`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(await getAuthHeader()),
+    },
+    body: JSON.stringify({
+      learner_goal: learnerGoal,
+      sections,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseApiError(response));
+  }
+
+  return response.json();
+}
+
+export async function submitDiagnosticQuizResults({
+  sessionId,
+  learnerGoal,
+  detailLevel = 'standard',
+  questions,
+  answers,
+}) {
+  const response = await fetch(`${API_BASE_URL}/api/v1/chat/sessions/${sessionId}/quiz-results`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(await getAuthHeader()),
+    },
+    body: JSON.stringify({
+      learner_goal: learnerGoal,
+      detail_level: detailLevel,
+      questions,
+      answers,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseApiError(response));
+  }
+
+  return response.json();
+}

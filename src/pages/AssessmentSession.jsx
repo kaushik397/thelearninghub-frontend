@@ -6,16 +6,37 @@ import { logProgressEvent, updateLearningTrackProgress } from '../api/userData';
 import { updateSavedNotesPart } from '../api/sessionResume';
 import { useAuth } from '../auth/auth-context';
 
+const NOTES_SECTION_BOUNDARY = /\n(?=#{1,6}\s|\d{1,2}\.\s+[^\n]+|\*\*[^*\n]+:\*\*|[A-Z][^\n]{3,80}:\s*(?:\n|$))/g;
+const NOTES_HEADING_ONLY = /^(#{1,6}\s+.+|\d{1,2}\.\s+.+|\*\*[^*\n]+:\*\*|[A-Z][^\n]{3,80}:\s*)$/;
+
+function isHeadingOnly(part) {
+  const lines = part.split('\n').map((line) => line.trim()).filter(Boolean);
+  return lines.length === 1 && NOTES_HEADING_ONLY.test(lines[0]);
+}
+
+function attachStrandedHeadings(parts) {
+  return parts.reduce((merged, part) => {
+    if (merged.length && isHeadingOnly(merged[merged.length - 1])) {
+      merged[merged.length - 1] = `${merged[merged.length - 1]}\n\n${part}`;
+      return merged;
+    }
+    merged.push(part);
+    return merged;
+  }, []);
+}
+
 function splitNotesIntoParts(markdown) {
   const normalized = markdown.trim();
   if (!normalized) return [];
 
   const sections = normalized
-    .split(/\n(?=#{1,3}\s|\*\*[^*\n]+:\*\*|[A-Z][^\n]{3,80}:\s*$)/g)
+    .split(NOTES_SECTION_BOUNDARY)
     .map((part) => part.trim())
     .filter(Boolean);
 
-  const sourceParts = sections.length > 1 ? sections : normalized.split(/\n\s*\n/g).map((part) => part.trim()).filter(Boolean);
+  const sourceParts = attachStrandedHeadings(
+    sections.length > 1 ? sections : normalized.split(/\n\s*\n/g).map((part) => part.trim()).filter(Boolean),
+  );
   const chunks = [];
   let current = '';
   const targetChars = 1400;
@@ -45,7 +66,10 @@ const AssessmentSession = () => {
   const reviewMode = Boolean(location.state?.reviewMode);
   const restoredFromSupabase = Boolean(location.state?.restoredFromSupabase);
   const [messages, setMessages] = useState(initialSession?.messages || []);
-  const [notesPartIndex, setNotesPartIndex] = useState(location.state?.notesPartIndex || 0);
+  const [notesCursor, setNotesCursor] = useState({
+    sessionId: initialSession?.session_id,
+    index: location.state?.notesPartIndex || 0,
+  });
   const [draft, setDraft] = useState('');
   const [error, setError] = useState('');
   const [isSending, setIsSending] = useState(false);
@@ -59,6 +83,17 @@ const AssessmentSession = () => {
     if (!firstMessage || firstMessage.role !== 'assistant') return [];
     return splitNotesIntoParts(firstMessage.content_markdown);
   }, [messages]);
+
+  const notesPartIndex = notesCursor.sessionId === initialSession?.session_id
+    ? notesCursor.index
+    : location.state?.notesPartIndex || 0;
+
+  const setNotesPartIndex = (index) => {
+    setNotesCursor({
+      sessionId: initialSession?.session_id,
+      index,
+    });
+  };
 
   const visibleMessages = useMemo(() => {
     if (!notesParts.length || reviewMode) return messages;
@@ -77,10 +112,6 @@ const AssessmentSession = () => {
   const notesProgressPercent = notesParts.length
     ? Math.round(((notesPartIndex + 1) / notesParts.length) * 100)
     : 0;
-
-  useEffect(() => {
-    setNotesPartIndex(location.state?.notesPartIndex || 0);
-  }, [initialSession?.session_id]);
 
   useEffect(() => {
     if (!user?.id || !learningTrack?.id || !notesParts.length) return;
@@ -150,7 +181,7 @@ const AssessmentSession = () => {
         sessionId: initialSession.session_id,
         message,
         materialId: sourceMaterial?.id,
-        notesMarkdown: generatedNotes?.notes_markdown || messages[0]?.content_markdown,
+        notesMarkdown: messages[0]?.content_markdown || generatedNotes?.notes_markdown,
       });
       setMessages((current) => [...current, response.message]);
     } catch (err) {
@@ -168,7 +199,7 @@ const AssessmentSession = () => {
             No active session
           </h1>
           <p style={{ fontFamily: "'DM Sans', sans-serif", color: 'var(--text-mid)', lineHeight: 1.7 }}>
-            Upload a PDF first so FocusPath can generate notes and open the chat.
+            Add a source first so FocusPath can generate notes, run the warm-up quiz, and open the chat.
           </p>
           <button type="button" onClick={() => navigate('/start-session')} className="btn-primary">
             Start Session
@@ -231,7 +262,7 @@ const AssessmentSession = () => {
         }}
       >
         <header style={{ marginBottom: 'var(--space-lg)' }}>
-          <span className="section-label" style={{ display: 'block', marginBottom: 'var(--space-xs)' }}>Document Chat</span>
+          <span className="section-label" style={{ display: 'block', marginBottom: 'var(--space-xs)' }}>Adaptive Notes</span>
           <h2
             style={{
               fontFamily: "'Playfair Display', serif",
@@ -248,9 +279,11 @@ const AssessmentSession = () => {
           <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '14px', color: 'var(--text-mid)', margin: 0 }}>
             {reviewMode
               ? 'Review the full notes generated from your material.'
+              : location.state?.quizCompleted
+              ? 'Your notes are tuned from the warm-up quiz. Ask follow-up questions whenever you want to go deeper.'
               : restoredFromSupabase
               ? 'Resume your saved notes and ask follow-up questions through Pinecone retrieval.'
-              : 'Ask follow-up questions about the uploaded PDF.'}
+              : 'Ask follow-up questions about your source material.'}
           </p>
         </header>
 
