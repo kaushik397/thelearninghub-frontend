@@ -107,22 +107,24 @@ const AssessmentQuiz = () => {
             sessionId: learningSession.id,
             notesMarkdown: focusedNotes.notes_markdown,
             promptVersion: 'quiz-adaptive-v1',
-          })
+        })
         : location.state?.generatedNotes;
 
-      navigate('/assessment', {
-        state: {
-          ...location.state,
-          chatSession: focusedNotes.chat_session,
-          generatedNotes,
-          quizResults: {
-            questions,
-            answers: payloadAnswers,
-            summary: quizResultPreview,
-          },
-          quizCompleted: true,
-          notesPartIndex: 0,
+      const nextState = {
+        ...location.state,
+        chatSession: focusedNotes.chat_session,
+        generatedNotes,
+        quizResults: {
+          questions,
+          answers: payloadAnswers,
+          summary: quizResultPreview,
         },
+        quizCompleted: true,
+        notesPartIndex: 0,
+      };
+
+      navigate('/assessment', {
+        state: nextState,
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not build focused notes from your quiz results.');

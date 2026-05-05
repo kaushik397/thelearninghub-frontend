@@ -159,12 +159,6 @@ const Dashboard = () => {
   };
 
   const resumeLearning = async (track) => {
-    const savedSession = getSavedLearningSession(user?.id, track?.id);
-    if (savedSession?.chatSession) {
-      navigate('/assessment', { state: savedSession });
-      return;
-    }
-
     try {
       const savedNotesState = await buildSavedNotesState(track);
       if (savedNotesState) {
@@ -175,16 +169,16 @@ const Dashboard = () => {
       console.warn('Could not load saved notes from Supabase', err);
     }
 
+    const savedSession = getSavedLearningSession(user?.id, track?.id);
+    if (savedSession?.chatSession) {
+      navigate('/assessment-quiz', { state: savedSession });
+      return;
+    }
+
     navigate('/start-session');
   };
 
   const reviewNotes = async (track) => {
-    const savedSession = getSavedLearningSession(user?.id, track?.id);
-    if (savedSession?.chatSession) {
-      navigate('/assessment', { state: { ...savedSession, reviewMode: true } });
-      return;
-    }
-
     try {
       const savedNotesState = await buildSavedNotesState(track, true);
       if (savedNotesState) {

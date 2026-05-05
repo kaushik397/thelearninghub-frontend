@@ -158,12 +158,6 @@ const Library = () => {
   };
 
   const openTrack = async (track, reviewMode = false) => {
-    const savedSession = getSavedLearningSession(user?.id, track?.id);
-    if (savedSession?.chatSession) {
-      navigate('/assessment', { state: { ...savedSession, reviewMode } });
-      return;
-    }
-
     try {
       const savedNotesState = await buildSavedNotesState(track, reviewMode);
       if (savedNotesState) {
@@ -172,6 +166,12 @@ const Library = () => {
       }
     } catch (err) {
       console.warn('Could not load saved notes from Supabase', err);
+    }
+
+    const savedSession = getSavedLearningSession(user?.id, track?.id);
+    if (savedSession?.chatSession && !reviewMode) {
+      navigate('/assessment-quiz', { state: savedSession });
+      return;
     }
 
     navigate('/start-session');
