@@ -113,6 +113,7 @@ const Profile = () => {
   const { user, signOut } = useAuth();
   const [profile, setProfile] = useState(null);
   const [learnerProfile, setLearnerProfile] = useState(null);
+  const [xpSummary, setXpSummary] = useState(null);
   const [stats, setStats] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -132,6 +133,7 @@ const Profile = () => {
         if (!mounted) return;
         setProfile(data?.profile || null);
         setLearnerProfile(data?.learnerProfile || null);
+        setXpSummary(data?.xpSummary || null);
         setStats(data?.stats || []);
       } catch (err) {
         if (mounted) setError(err.message || 'Could not load your profile.');
@@ -158,6 +160,7 @@ const Profile = () => {
   const memberSince = formatDate(user?.created_at);
   const onboardingDate = formatDate(profile?.onboarding_completed_at);
   const initial = fullName.trim().charAt(0).toUpperCase() || 'L';
+  const tierLabel = `${xpSummary?.currentTierDisplayName || 'Sprout'} Learner`;
 
   const methodology = learnerProfile?.preferred_methodology || null;
   const methodologyMeta = methodology ? METHODOLOGY_META[methodology] : null;
@@ -259,6 +262,18 @@ const Profile = () => {
             >
               {memberSince ? `FocusPath learner since ${memberSince}` : 'FocusPath learner'}
             </p>
+            <p
+              style={{
+                fontFamily: "'DM Sans', sans-serif",
+                fontSize: '14px',
+                fontWeight: 500,
+                color: 'var(--primary)',
+                margin: 0,
+                marginTop: '6px',
+              }}
+            >
+              {tierLabel}
+            </p>
           </div>
           <button
             className="btn-secondary"
@@ -286,7 +301,7 @@ const Profile = () => {
 
       {stats.length > 0 && (
         <section
-          className="grid grid-cols-3"
+          className="grid grid-cols-1 md:grid-cols-3"
           style={{ gap: 'var(--space-md)', marginBottom: 'var(--space-xl)' }}
         >
           {stats.map((stat) => (

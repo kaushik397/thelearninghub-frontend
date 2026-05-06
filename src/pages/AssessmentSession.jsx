@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import ChatBubble from '../components/ChatBubble';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { sendChatMessage } from '../api/learningHub';
+import { completeLearningSession, sendChatMessage } from '../api/learningHub';
 import { logProgressEvent, updateLearningTrackProgress } from '../api/userData';
 import { updateSavedNotesPart } from '../api/sessionResume';
 import { useAuth } from '../auth/auth-context';
@@ -78,6 +78,8 @@ const AssessmentSession = () => {
   const [draft, setDraft] = useState('');
   const [error, setError] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const [isCompleting, setIsCompleting] = useState(false);
+  const [completion, setCompletion] = useState(null);
 
   const sessionTitle = useMemo(() => {
     return location.state?.topic?.trim() || initialSession?.source_stats?.filename || 'Learning Session';
@@ -163,6 +165,39 @@ const AssessmentSession = () => {
     if (!hasPreviousNotesPart) return;
     const previousIndex = Math.max(0, notesPartIndex - 1);
     setNotesPartIndex(previousIndex);
+  };
+
+  const handleCompleteSession = async () => {
+    if (!initialSession?.session_id || isCompleting || completion) return;
+
+    setIsCompleting(true);
+    setError('');
+
+    try {
+      const startedAt = location.state?.learningSession?.started_at || initialSession?.started_at;
+      const actualDurationSeconds = startedAt
+        ? Math.max(0, Math.round((Date.now() - new Date(startedAt).getTime()) / 1000))
+        : undefined;
+
+      const response = await completeLearningSession({
+        sessionId: initialSession.session_id,
+        actualDurationSeconds,
+      });
+
+      setCompletion(response);
+
+      if (learningTrack?.id && user?.id) {
+        await updateLearningTrackProgress({
+          userId: user.id,
+          trackId: learningTrack.id,
+          progressPercent: 100,
+        });
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not complete this session.');
+    } finally {
+      setIsCompleting(false);
+    }
   };
 
   const handleSend = async () => {
@@ -343,6 +378,49 @@ const AssessmentSession = () => {
             </div>
           )}
 
+          {completion && (
+            <div
+              className="flex items-center justify-between gap-4"
+              style={{
+                background: 'rgba(255, 96, 10, 0.10)',
+                border: '1px solid rgba(255, 96, 10, 0.24)',
+                borderRadius: 'var(--radius-md)',
+                padding: '12px 14px',
+              }}
+            >
+              <span className="section-label">+{completion.xp_earned} XP earned</span>
+              <button
+                className="btn-secondary"
+                onClick={() => navigate('/dashboard')}
+                style={{ padding: '8px 14px', fontSize: '13px' }}
+              >
+                Dashboard
+              </button>
+            </div>
+          )}
+
+          {!reviewMode && notesParts.length <= 1 && !completion && (
+            <div
+              className="flex justify-end"
+              style={{
+                background: 'rgba(255, 255, 255, 0.62)',
+                border: '1px solid var(--border-light)',
+                borderRadius: 'var(--radius-md)',
+                padding: '12px 14px',
+              }}
+            >
+              <button
+                className="btn-primary"
+                onClick={handleCompleteSession}
+                disabled={isCompleting}
+                style={{ padding: '10px 16px', fontSize: '13px', opacity: isCompleting ? 0.72 : 1 }}
+              >
+                {isCompleting ? 'Saving XP...' : 'Complete Session'}
+                <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>check</span>
+              </button>
+            </div>
+          )}
+
           {visibleMessages.map((message) => (
             <ChatBubble
               key={message.id}
@@ -445,24 +523,26 @@ const AssessmentSession = () => {
                     Prev
                   </button>
                   <button
-                    aria-label="Next notes part"
-                    onClick={handleNextPart}
-                    disabled={!hasNextNotesPart}
+                    aria-label={hasNextNotesPart ? 'Next notes part' : 'Complete session'}
+                    onClick={hasNextNotesPart ? handleNextPart : handleCompleteSession}
+                    disabled={isCompleting || Boolean(completion)}
                     className="h-10 flex items-center justify-center gap-1 transition-all active:scale-95"
                     style={{
-                      background: hasNextNotesPart ? 'var(--primary-pale)' : 'transparent',
-                      color: hasNextNotesPart ? 'var(--primary)' : 'var(--text-soft)',
+                      background: !completion ? 'var(--primary-pale)' : 'transparent',
+                      color: !completion ? 'var(--primary)' : 'var(--text-soft)',
                       border: '1px solid var(--border-light)',
                       borderRadius: 'var(--radius-sm)',
-                      cursor: hasNextNotesPart ? 'pointer' : 'default',
+                      cursor: !completion && !isCompleting ? 'pointer' : 'default',
                       fontFamily: "'DM Sans', sans-serif",
                       fontSize: '13px',
                       fontWeight: 700,
                       padding: '0 10px',
                     }}
                   >
-                    Next
-                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>chevron_right</span>
+                    {hasNextNotesPart ? 'Next' : isCompleting ? 'Saving...' : completion ? 'Complete' : 'Complete'}
+                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
+                      {hasNextNotesPart ? 'chevron_right' : 'check'}
+                    </span>
                   </button>
                 </>
               )}

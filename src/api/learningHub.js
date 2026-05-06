@@ -173,3 +173,22 @@ export async function submitDiagnosticQuizResults({
 
   return response.json();
 }
+
+export async function completeLearningSession({ sessionId, actualDurationSeconds }) {
+  const response = await fetch(`${API_BASE_URL}/api/v1/chat/sessions/${sessionId}/complete`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(await getAuthHeader()),
+    },
+    body: JSON.stringify({
+      actual_duration_seconds: actualDurationSeconds,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseApiError(response));
+  }
+
+  return response.json();
+}

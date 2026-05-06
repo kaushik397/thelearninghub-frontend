@@ -114,7 +114,7 @@ const Dashboard = () => {
   const resumeTrack = dashboard?.resumeTrack || null;
   const stats = dashboard?.stats || [
     { val: 0, label: 'Active Days' },
-    { val: 0, label: 'Sessions Done' },
+    { val: 0, label: 'Total XP' },
     { val: 0, label: 'Completed Tracks' },
   ];
 

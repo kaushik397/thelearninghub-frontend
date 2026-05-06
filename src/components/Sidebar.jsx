@@ -1,12 +1,41 @@
+import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../auth/auth-context';
+import { getUserXpSummary } from '../api/userData';
 
 const Sidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
+  const [xpSummary, setXpSummary] = useState(null);
   const displayName = user?.user_metadata?.full_name || user?.email || 'Learning Path';
   const initial = displayName.trim().charAt(0).toUpperCase() || 'L';
+  const tierLabel = `${xpSummary?.currentTierDisplayName || 'Sprout'} Learner`;
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadXpSummary() {
+      if (!user?.id) {
+        setXpSummary(null);
+        return;
+      }
+
+      try {
+        const summary = await getUserXpSummary(user.id);
+        if (mounted) setXpSummary(summary);
+      } catch (err) {
+        console.warn('Could not load XP summary', err);
+        if (mounted) setXpSummary(null);
+      }
+    }
+
+    loadXpSummary();
+
+    return () => {
+      mounted = false;
+    };
+  }, [user?.id]);
 
   const navItem = (icon, label, path) => {
     const isActive = path && location.pathname === path;
@@ -87,7 +116,7 @@ const Sidebar = () => {
                 marginTop: '2px',
               }}
             >
-              Level 4 Learner
+              {tierLabel}
             </p>
           </div>
         </div>

@@ -37,21 +37,28 @@ export async function upsertLearnerProfile({ userId, updates }) {
 export async function getDashboardData(userId) {
   requireUserId(userId);
 
-  const [profileResult, learnerResult, tracksResult, sessionsResult, progressResult] = await Promise.all([
+  const [
+    profileResult,
+    learnerResult,
+    xpResult,
+    xpTiersResult,
+    tracksResult,
+    progressResult,
+  ] = await Promise.all([
     supabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
     supabase.from('learner_profiles').select('*').eq('user_id', userId).maybeSingle(),
+    supabase
+      .from('user_xp')
+      .select('total_xp,current_level,current_tier,completed_tracks,total_focus_seconds')
+      .eq('user_id', userId)
+      .maybeSingle(),
+    supabase.from('xp_tiers').select('tier,display_name'),
     supabase
       .from('learning_tracks')
       .select('id,title,description,icon,progress_percent,last_accessed_at,created_at')
       .eq('user_id', userId)
       .order('last_accessed_at', { ascending: false, nullsFirst: false })
       .order('created_at', { ascending: false }),
-    supabase
-      .from('learning_sessions')
-      .select('id,status,started_at,ended_at')
-      .eq('user_id', userId)
-      .order('started_at', { ascending: false })
-      .limit(50),
     supabase
       .from('progress_events')
       .select('event_type,created_at')
@@ -63,24 +70,43 @@ export async function getDashboardData(userId) {
   const firstError = [
     profileResult.error,
     learnerResult.error,
+    xpResult.error,
+    xpTiersResult.error,
     tracksResult.error,
-    sessionsResult.error,
     progressResult.error,
   ].find(Boolean);
 
   if (firstError) throw firstError;
 
   const tracks = tracksResult.data || [];
-  const sessions = sessionsResult.data || [];
   const progressEvents = progressResult.data || [];
+  const xpSummary = normalizeXpSummary(xpResult.data, xpTiersResult.data || []);
 
   return {
     profile: profileResult.data,
     learnerProfile: learnerResult.data,
+    xpSummary,
     tracks,
     resumeTrack: tracks.find((track) => Number(track.progress_percent) < 100) || tracks[0] || null,
-    stats: buildDashboardStats({ tracks, sessions, progressEvents }),
+    stats: buildDashboardStats({ tracks, progressEvents, xpSummary }),
   };
+}
+
+export async function getUserXpSummary(userId) {
+  requireUserId(userId);
+
+  const [xpResult, xpTiersResult] = await Promise.all([
+    supabase
+      .from('user_xp')
+      .select('total_xp,current_level,current_tier,completed_tracks,total_focus_seconds')
+      .eq('user_id', userId)
+      .maybeSingle(),
+    supabase.from('xp_tiers').select('tier,display_name'),
+  ]);
+
+  const firstError = xpResult.error || xpTiersResult.error;
+  if (firstError) throw firstError;
+  return normalizeXpSummary(xpResult.data, xpTiersResult.data || []);
 }
 
 export async function createLearningTrack({ userId, title, description, icon = 'auto_stories' }) {
@@ -288,16 +314,31 @@ export async function logProgressEvent({ userId, eventType, eventData = {} }) {
   if (error) throw error;
 }
 
-function buildDashboardStats({ tracks, sessions, progressEvents }) {
+function normalizeXpSummary(row, tiers = []) {
+  const currentTier = row?.current_tier || 'sprout';
+  const tierDisplayName =
+    tiers.find((tier) => tier.tier === currentTier)?.display_name ||
+    currentTier.charAt(0).toUpperCase() + currentTier.slice(1);
+
+  return {
+    totalXp: Number(row?.total_xp || 0),
+    currentLevel: Number(row?.current_level || 1),
+    currentTier,
+    currentTierDisplayName: tierDisplayName,
+    completedTracks: Number(row?.completed_tracks || 0),
+    totalFocusSeconds: Number(row?.total_focus_seconds || 0),
+  };
+}
+
+function buildDashboardStats({ tracks, progressEvents, xpSummary }) {
   const completedTracks = tracks.filter((track) => Number(track.progress_percent) >= 100).length;
-  const completedSessions = sessions.filter((session) => session.status === 'completed').length;
   const activeDays = new Set(
     progressEvents.map((event) => new Date(event.created_at).toISOString().slice(0, 10)),
   ).size;
 
   return [
     { val: activeDays, label: 'Active Days' },
-    { val: completedSessions, label: 'Sessions Done' },
+    { val: xpSummary.totalXp.toLocaleString(), label: 'Total XP' },
     { val: completedTracks, label: 'Completed Tracks' },
   ];
 }
