@@ -5,7 +5,7 @@ import { useAuth } from '../auth/auth-context';
 
 const OnboardingStep4 = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, refreshProfile } = useAuth();
   const [energy, setEnergy] = useState('medium');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -46,6 +46,7 @@ const OnboardingStep4 = () => {
         dateOfBirth: user?.user_metadata?.date_of_birth || null,
         onboardingCompletedAt: new Date().toISOString(),
       });
+      await refreshProfile();
       navigate('/dashboard');
     } catch (err) {
       setError(err.message || 'Could not complete setup.');
