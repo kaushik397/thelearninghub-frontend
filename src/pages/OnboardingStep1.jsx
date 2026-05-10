@@ -69,7 +69,9 @@ const OnboardingStep1 = () => {
     }
 
     if (!data.session) {
-      setMessage('Account created. Check your email to confirm it, then sign in.');
+      setMessage(
+        'Account created. Check your email to confirm it — once confirmed, you\'ll be taken through the rest of the setup (learning style, focus length, energy).',
+      );
       return;
     }
 
